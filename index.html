@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0b1220" />
+
+  <title>Arbeitszeiten & Spesen</title>
+
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="img/icon-192.png" />
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+
+    <!-- Header -->
+    <header class="app-header">
+      <img src="img/logo-mader.png" class="logo-mader" alt="Mader Transporte Logo" />
+
+      <h1 class="app-title">Arbeitszeiten &amp; Spesen</h1>
+      
+    </header>
+
+    <!-- Navigation -->
+    <nav class="top-nav" aria-label="Navigation">
+      <button class="nav-btn active" type="button" data-target="page-stammdaten">Stammdaten</button>
+      <button class="nav-btn" type="button" data-target="page-tag">Tageserfassung</button>
+      <button class="nav-btn" type="button" data-target="page-monat">Monatsübersicht</button>
+    </nav>
+
+    <!-- Seiten -->
+    <main class="pages">
+
+      <!-- Stammdaten -->
+      <section id="page-stammdaten" class="page page-active">
+        <div class="card">
+          <h2>Stammdaten</h2>
+
+          <div class="grid grid-2">
+            <div class="form-row">
+              <label for="vorname">Vorname</label>
+              <input id="vorname" type="text" placeholder="Max" autocomplete="given-name" />
+            </div>
+
+            <div class="form-row">
+              <label for="nachname">Nachname</label>
+              <input id="nachname" type="text" placeholder="Mustermann" autocomplete="family-name" />
+            </div>
+
+            <div class="form-row">
+              <label for="monat">Monat</label>
+              <select id="monat">
+                <option>Jan</option><option>Feb</option><option>Mär</option><option>Apr</option><option>Mai</option><option>Jun</option>
+                <option>Jul</option><option>Aug</option><option>Sep</option><option>Okt</option><option>Nov</option><option>Dez</option>
+              </select>
+              <small class="hint">Monatsdaten werden pro Monat gespeichert.</small>
+            </div>
+
+            <div class="form-row">
+              <label for="jahr">Jahr</label>
+              <input id="jahr" type="number" min="1900" max="2100" />
+            </div>
+          </div>
+
+          <div class="button-row">
+            <button type="button" class="btn-secondary" id="btnResetAll">Alles zurücksetzen</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Hinweis</h2>
+          <p class="text-muted">
+            Deine Daten werden im Browser gespeichert
+          </p>
+        </div>
+      </section>
+
+      <!-- Tageserfassung -->
+      <section id="page-tag" class="page">
+        <div class="card">
+          <h2>Tageserfassung</h2>
+
+          <div class="grid grid-2">
+            <div class="form-row">
+              <label for="datum">1) Datum</label>
+              <input id="datum" type="date" />
+            </div>
+
+            <div class="form-row">
+              <label>Wochentag</label>
+              <input id="wochentag" type="text" readonly class="readonly" placeholder="automatisch" />
+            </div>
+
+            <div class="form-row">
+              <label for="ortAbfahrt">2) Ort Abfahrt</label>
+              <input id="ortAbfahrt" type="text" placeholder="z.B. Firma / Stadt / Urlaub / Krank / Abbummeln" />
+              <small class="hint">Status-Tage: Urlaub, Krank, Abbummeln (keine Berechnung).</small>
+            </div>
+
+            <div class="form-row">
+              <label for="ortAnkunft">3) Ort Ankunft</label>
+              <input id="ortAnkunft" type="text" placeholder="z.B. Firma oder Stadt" />
+            </div>
+
+            <div class="form-row">
+              <label for="vonZeit">4) Von</label>
+              <input id="vonZeit" type="time" />
+            </div>
+
+            <div class="form-row">
+              <label for="bisZeit">5) Bis</label>
+              <input id="bisZeit" type="time" />
+            </div>
+
+            <div class="form-row">
+              <label for="pause">8) Pause (Stunden)</label>
+              <input id="pause" type="text" inputmode="decimal" placeholder="z.B. 0,5" />
+              <small class="hint">Komma oder Punkt möglich.</small>
+            </div>
+          </div>
+
+          <div class="button-row button-row-inline">
+            <button type="button" class="btn-secondary" id="btnResetForm">Formular zurücksetzen</button>
+            <button type="button" class="btn-primary" id="btnBerechne">Nur berechnen</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Berechnete Werte</h2>
+
+          <div class="grid grid-2">
+            <div class="form-row">
+              <label for="std">6) Std</label>
+              <input id="std" type="text" readonly class="readonly" />
+              <small class="hint">(Bis − Von) − Pause</small>
+            </div>
+
+            <div class="form-row">
+              <label for="weStd">7) WE-Std</label>
+              <input id="weStd" type="text" readonly class="readonly" />
+              <small class="hint">Sa/So → Std, sonst 0</small>
+            </div>
+
+            <div class="form-row">
+              <label for="nachtStd">9) Nacht-Std</label>
+              <input id="nachtStd" type="text" readonly class="readonly" />
+              <small class="hint">22:00–06:00 (nur wenn ≥ 2h)</small>
+            </div>
+
+            <div class="form-row">
+              <label for="spesen">10) Spesen</label>
+              <input id="spesen" type="text" readonly class="readonly" />
+              <small class="hint">Firma beteiligt → 14 €, sonst 28 €</small>
+            </div>
+          </div>
+
+          <div class="button-row">
+            <button type="button" class="btn-accent" id="btnAdd">Eintrag zur Monatsliste hinzufügen</button>
+          </div>
+        </div>
+      </section>
+
+     <!-- Monatsübersicht -->
+<section id="page-monat" class="page">
+  <div class="card">
+    <div class="card-header-row">
+      <h2>Monatsübersicht</h2>
+      <button type="button" class="btn-secondary small" id="btnClear">Liste leeren</button>
+    </div>
+
+    <div class="table-wrapper">
+      <table id="monatsTabelle">
+        <thead>
+          <tr>
+            <th>Tag</th>
+            <th>Datum</th>
+            <th>Ort Abfahrt</th>
+            <th>Ort Ankunft</th>
+            <th>Von</th>
+            <th>Bis</th>
+            <th>Std</th>
+            <th>WE-Std</th>
+            <th>Pause</th>
+            <th>Nacht</th>
+            <th>Spesen</th>
+            <th>Aktion</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-item"><span>Summe Std</span><strong id="sumStd">0,00</strong></div>
+      <div class="summary-item"><span>Summe WE-Std</span><strong id="sumWeStd">0,00</strong></div>
+      <div class="summary-item"><span>Summe Nacht</span><strong id="sumNachtStd">0,00</strong></div>
+      <div class="summary-item"><span>Summe Spesen</span><strong id="sumSpesen">0,00</strong></div>
+    </div>
+
+    <div class="button-row button-row-inline">
+      <button type="button" class="btn-secondary" id="btnCSV">CSV für Excel herunterladen</button>
+    </div>
+  </div>
+</section>
+   </main>
+
+    <footer class="app-footer">
+      
+    </footer>
+  </div>
+
+  <script src="js/script.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
