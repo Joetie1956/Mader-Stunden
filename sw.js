@@ -1,65 +1,64 @@
-const CACHE_NAME = "stundenapp-v4"; // <-- bei jedem Update hochzählen
+ =========================================================
+   Stunden-App – Service Worker (FINAL)
+   - Cache-Version bei Updates erhöhen!
+   ========================================================= */
 
-const CORE_ASSETS = [
+const CACHE_NAME = "stundenapp-v7"; // <<< bei jedem Update +1 erhöhen
+
+const ASSETS = [
   "./",
   "./index.html",
   "./css/style.css",
   "./js/script.js",
-  "./manifest.webmanifest"
+  "./manifest.webmanifest",
+  "./img/logo-mader.png",
+  "./img/icon-192.png",
+  "./img/icon-512.png"
 ];
 
-// Install: nur Core cachen (keine Bilder -> keine 404-Probleme)
+// Install: Assets vorab cachen
 self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+  );
   self.skipWaiting();
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS)));
 });
 
-// Activate: alte Caches löschen + sofort übernehmen
+// Activate: alte Caches löschen
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    (async () => {
-      const keys = await caches.keys();
-      await Promise.all(keys.map((k) => (k !== CACHE_NAME ? caches.delete(k) : Promise.resolve())));
-      await self.clients.claim();
-    })()
+    caches.keys().then((keys) =>
+      Promise.all(keys.map((k) => (k !== CACHE_NAME ? caches.delete(k) : null)))
+    )
   );
+  self.clients.claim();
 });
 
-// Fetch: HTML immer aus dem Netz versuchen (damit Updates kommen),
-// falls offline -> Cache.
-// Statische Dateien: Cache-first.
+// Fetch: Cache first für App-Dateien, sonst Network + Cache
 self.addEventListener("fetch", (event) => {
   const req = event.request;
-  const url = new URL(req.url);
 
-  // nur gleicher Origin
-  if (url.origin !== self.location.origin) return;
+  // nur GET Requests cachen
+  if (req.method !== "GET") return;
 
-  // Für HTML: Network-first (wichtig für Updates)
-  if (req.mode === "navigate" || req.destination === "document") {
-    event.respondWith(
-      fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put("./index.html", copy));
-          return res;
-        })
-        .catch(() => caches.match("./index.html"))
-    );
-    return;
-  }
-
-  // Für Assets: Cache-first
   event.respondWith(
     caches.match(req).then((cached) => {
       if (cached) return cached;
+
       return fetch(req)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+          // nur erfolgreiche, gleiche-origin Antworten cachen
+          const url = new URL(req.url);
+          if (res.ok && url.origin === self.location.origin) {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+          }
           return res;
         })
-        .catch(() => cached);
+        .catch(() => {
+          // Offline-Fallback
+          return caches.match("./index.html");
+        });
     })
   );
 });
