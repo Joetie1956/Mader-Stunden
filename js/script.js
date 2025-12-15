@@ -328,40 +328,87 @@ function csvExport() {
     return;
   }
 
-  let csv = "Tag;Datum;OrtAbfahrt;OrtAnkunft;Von;Bis;Std;WEStd;Pause;NachtStd;Spesen\r\n";
+  // ===== Firmenadresse =====
+  const firma = "Mader Transporte";
+  const adresse1 = "Heidekoppel 20";
+  const adresse2 = "24558 Henstedt-Ulzburg";
 
+  // ===== Stammdaten =====
+  const vorname = (localStorage.getItem("stundenapp_vorname") || "").trim();
+  const nachname = (localStorage.getItem("stundenapp_nachname") || "").trim();
+
+  const monatKurz = (document.getElementById("monat")?.value || "").trim();
+  const jahr = (document.getElementById("jahr")?.value || "").trim();
+
+  const monateLang = {
+    Jan: "Januar", Feb: "Februar", Mär: "März", Apr: "April", Mai: "Mai",
+    Jun: "Juni", Jul: "Juli", Aug: "August", Sep: "September",
+    Okt: "Oktober", Nov: "November", Dez: "Dezember"
+  };
+  const monatLang = monateLang[monatKurz] || monatKurz;
+
+  let csv = "";
+
+  // ===== Zeile 1: A1 + E1/F1/G1 =====
+  // Spalten: A;B;C;D;E;F;G
+  csv += `${firma};;;;Name;${vorname};${nachname}\r\n`;
+
+  // ===== Zeile 2: A2 + E2/F2/G2 =====
+  csv += `${adresse1};;;;Monat/Jahr;${monatLang};${jahr}\r\n`;
+
+  // ===== Zeile 3: nur A3 =====
+  csv += `${adresse2}\r\n`;
+
+  // ===== Zeilen 4–7 leer (damit Tabellenkopf in Zeile 8 landet) =====
+  csv += `\r\n\r\n\r\n\r\n`;
+
+  // ===== Zeile 8: Tabellenkopf =====
+  csv += "Tag;Datum;OrtAbfahrt;OrtAnkunft;Von;Bis;Std;WEStd;Pause;NachtStd;Spesen\r\n";
+
+  // ===== Daten ab Zeile 9 =====
   eintraege.forEach((e) => {
-    const spesenClean = String(e.spesen || "").replace(" €", "").replace("€", "").trim();
+    const spesenClean = String(e.spesen || "").replace("€", "").trim();
+
     csv += [
-      e.tag,
-      e.datum,
-      e.ortAbfahrt,
-      e.ortAnkunft,
-      e.von,
-      e.bis,
-      e.std,
-      e.weStd,
-      e.pause,
-      e.nachtStd,
+      e.tag || "",
+      e.datum || "",        // TT.MM.JJJJ
+      e.ortAbfahrt || "",
+      e.ortAnkunft || "",
+      e.von || "",
+      e.bis || "",
+      e.std || "",
+      e.weStd || "",
+      e.pause || "",
+      e.nachtStd || "",
       spesenClean
     ].join(";") + "\r\n";
   });
 
-  const monat = document.getElementById("monat").value;
-  const jahr = document.getElementById("jahr").value;
-
+  // ===== Download =====
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement("a");
   a.href = url;
-  a.download = `Stunden_${monat}_${jahr}.csv`;
+  const v = (localStorage.getItem("stundenapp_vorname") || "").trim();
+const n = (localStorage.getItem("stundenapp_nachname") || "").trim();
+
+const initial = v ? v[0].toUpperCase() : "X";
+const cleanNachname = n.replace(/[^a-zA-Z0-9ÄÖÜäöüß_-]/g, ""); // Dateiname sicher
+
+a.download = `Stunden_${monatKurz || "Monat"}_${jahr || "Jahr"}_${initial}${cleanNachname}.csv`;
+
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
 
   URL.revokeObjectURL(url);
 }
+
+
+
+
+
 
 // ===================== Init =====================
 document.addEventListener("DOMContentLoaded", () => {
@@ -433,6 +480,41 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
+function saveStammdaten() {
+  localStorage.setItem("stundenapp_vorname", (document.getElementById("vorname")?.value || "").trim());
+  localStorage.setItem("stundenapp_nachname", (document.getElementById("nachname")?.value || "").trim());
+  localStorage.setItem("stundenapp_monat", (document.getElementById("monat")?.value || "").trim());
+  localStorage.setItem("stundenapp_jahr", (document.getElementById("jahr")?.value || "").trim());
+}
+
+function loadStammdaten() {
+  const v = localStorage.getItem("stundenapp_vorname") || "";
+  const n = localStorage.getItem("stundenapp_nachname") || "";
+  const m = localStorage.getItem("stundenapp_monat") || "";
+  const j = localStorage.getItem("stundenapp_jahr") || "";
+
+  const vornameEl = document.getElementById("vorname");
+  const nachnameEl = document.getElementById("nachname");
+  const monatEl = document.getElementById("monat");
+  const jahrEl = document.getElementById("jahr");
+
+  if (vornameEl) vornameEl.value = v;
+  if (nachnameEl) nachnameEl.value = n;
+
+  // Wichtig: Monat/Jahr zuerst aus Storage nehmen – NICHT sofort wieder "heute" drüberbügeln
+  if (monatEl && m) monatEl.value = m;
+  if (jahrEl && j) jahrEl.value = j;
+
+  // Falls noch nix gespeichert ist -> erst dann Default auf heute
+  const now = new Date();
+  if (jahrEl && !jahrEl.value) jahrEl.value = String(now.getFullYear());
+  if (monatEl && !monatEl.value) {
+    const monate = ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+    monatEl.value = monate[now.getMonth()];
+  }
+}
+
+
 // Expose delete globally for inline button
 window.eintragLoeschen = eintragLoeschen;
 
@@ -449,5 +531,6 @@ window.eintragLoeschen = eintragLoeschen;
 
 
      
+
 
 
