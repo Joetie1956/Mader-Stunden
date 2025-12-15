@@ -1,5 +1,90 @@
-/// ===================== Helpers =====================
+/* =========================================================
+   Stunden-App – script.js (FINAL)
+   - Navigation: Stammdaten / Tageserfassung / Monatsübersicht
+   - Stammdaten: Vorname/Nachname/Monat/Jahr gespeichert
+   - Mitarbeiter-ID Anzeige (z.B. JTiedemann)
+   - Monatsdaten pro Mitarbeiter+Monat+Jahr gespeichert
+   - Berechnung inkl. Urlaub/Krank/Abbummeln
+   - CSV: Firmenkopf + Name in E1/F1/G1 + Monat/Jahr in E2/F2/G2
+   - CSV Dateiname: Stunden_Dez_2025_JTiedemann.csv
+   ========================================================= */
 
+// ===================== Helpers =====================
+function parseTimeToMinutes(timeStr) {
+  if (!timeStr) return null;
+  const [h, m] = timeStr.split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  return h * 60 + m;
+}
+
+function parsePauseToMinutes(pauseStr) {
+  if (!pauseStr) return 0;
+  const s = String(pauseStr).replace(",", ".").trim();
+  const val = parseFloat(s);
+  if (Number.isNaN(val) || val < 0) return 0;
+  return val * 60;
+}
+
+function overlapMinutes(aStart, aEnd, bStart, bEnd) {
+  const start = Math.max(aStart, bStart);
+  const end = Math.min(aEnd, bEnd);
+  return Math.max(0, end - start);
+}
+
+function formatNumberDE(value) {
+  const num = typeof value === "number"
+    ? value
+    : parseFloat(String(value).replace(",", "."));
+  if (Number.isNaN(num)) return "0,00";
+  return num.toFixed(2).replace(".", ",");
+}
+
+function weekdayShortFromISO(iso) {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-").map(Number);
+  const dateObj = new Date(y, m - 1, d);
+  const w = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+  return w[dateObj.getDay()] || "";
+}
+
+function toGermanDate(iso) {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-");
+  return `${d}.${m}.${y}`;
+}
+
+function parseGermanDateToDate(ddmmyyyy) {
+  const parts = String(ddmmyyyy).split(".");
+  if (parts.length !== 3) return null;
+  const [dd, mm, yy] = parts.map(Number);
+  if ([dd, mm, yy].some(Number.isNaN)) return null;
+  return new Date(yy, mm - 1, dd);
+}
+
+function monthLongFromShort(monatKurz) {
+  const map = {
+    Jan: "Januar", Feb: "Februar", Mär: "März", Apr: "April", Mai: "Mai", Jun: "Juni",
+    Jul: "Juli", Aug: "August", Sep: "September", Okt: "Oktober", Nov: "November", Dez: "Dezember"
+  };
+  return map[monatKurz] || monatKurz || "";
+}
+
+function isStatusDay(ortAbfahrt) {
+  const s = (ortAbfahrt || "").trim().toLowerCase();
+  return ["urlaub", "krank", "abbummeln"].includes(s);
+}
+
+// ===================== Navigation (Pages) =====================
+function showPage(pageId, clickedBtn) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("page-active"));
+  const el = document.getElementById(pageId);
+  if (el) el.classList.add("page-active");
+
+  document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+  if (clickedBtn) clickedBtn.classList.add("active");
+}
+
+// ===================== Mitarbeiter-ID =====================
 function computeEmployeeId(vorname, nachname) {
   const v = (vorname || "").trim();
   const n = (nachname || "").trim();
@@ -13,225 +98,424 @@ function updateMitarbeiterIdAnzeige() {
   const vEl = document.getElementById("vorname");
   const nEl = document.getElementById("nachname");
   const idEl = document.getElementById("mitarbeiterIdAnzeige");
-
-  if (!vEl || !nEl || !idEl) return; // falls ein Feld fehlt
-
-  idEl.value = computeEmployeeId(vEl.value, nEl.value);
+  if (!vEl || !nEl || !idEl) return "";
+  const id = computeEmployeeId(vEl.value, nEl.value);
+  idEl.value = id;
+  return id;
 }
 
-
-function formatNumberDE(value) {
-  const num = typeof value === "number"
-    ? value
-    : parseFloat(String(value).replace(",", "."));
-  if (isNaN(num)) return "0,00";
-  return num.toFixed(2).replace(".", ",");
+// ===================== Storage Keys =====================
+function getEmployeeKeyPart() {
+  const v = localStorage.getItem("stundenapp_vorname") || "";
+  const n = localStorage.getItem("stundenapp_nachname") || "";
+  return computeEmployeeId(v, n) || "OhneName";
 }
-
-function parseTimeToMinutes(timeStr) {
-  if (!timeStr) return null;
-  const [h, m] = timeStr.split(":").map(Number);
-  if (isNaN(h) || isNaN(m)) return null;
-  return h * 60 + m;
-}
-
-function parsePauseToMinutes(pauseStr) {
-  if (!pauseStr) return 0;
-  const val = parseFloat(String(pauseStr).replace(",", "."));
-  if (isNaN(val) || val < 0) return 0;
-  return val * 60;
-}
-
-function overlapMinutes(aStart, aEnd, bStart, bEnd) {
-  return Math.max(0, Math.min(aEnd, bEnd) - Math.max(aStart, bStart));
-}
-
-// ===================== Mitarbeiter-ID =====================
-function updateMitarbeiterIdAnzeige() {
-  const vorname = (document.getElementById("vorname")?.value || "").trim();
-  const nachname = (document.getElementById("nachname")?.value || "").trim();
-
-  let id = "";
-  if (vorname && nachname) {
-    id = vorname[0].toUpperCase() + nachname;
-    id = id.replace(/[^a-zA-Z0-9ÄÖÜäöüß_-]/g, "");
-  }
-
-  const feld = document.getElementById("mitarbeiterIdAnzeige");
-  if (feld) feld.value = id;
-}
-
-// ===================== Monatsdaten =====================
-const eintraege = [];
 
 function monthKey() {
-  const monat = document.getElementById("monat").value;
-  const jahr = document.getElementById("jahr").value;
-  return `stundenapp_${jahr}_${monat}`;
+  const monat = (document.getElementById("monat")?.value || "").trim();
+  const jahr = (document.getElementById("jahr")?.value || "").trim();
+  const emp = getEmployeeKeyPart();
+  return `stundenapp_eintraege_${emp}_${jahr}_${monat}`;
 }
 
-function saveMonth() {
-  localStorage.setItem(monthKey(), JSON.stringify(eintraege));
-}
+// ===================== State =====================
+const eintraege = [];
 
-function loadMonth() {
-  eintraege.length = 0;
-  const raw = localStorage.getItem(monthKey());
-  if (raw) {
-    try {
-      const arr = JSON.parse(raw);
-      if (Array.isArray(arr)) arr.forEach(e => eintraege.push(e));
-    } catch {}
-  }
-  aktualisiereTabelleUndSummen();
+// ===================== Wochentag =====================
+function ermittleWochentagName(datumISO) {
+  const tag = weekdayShortFromISO(datumISO);
+  const feld = document.getElementById("wochentag");
+  if (feld) feld.value = tag;
+  return tag;
 }
 
 // ===================== Berechnung =====================
 function berechne() {
-  const datum = document.getElementById("datum").value;
-  const ortAb = document.getElementById("ortAbfahrt").value.trim();
-  const ortAn = document.getElementById("ortAnkunft").value.trim();
-  const von = document.getElementById("vonZeit").value;
-  const bis = document.getElementById("bisZeit").value;
-  const pause = document.getElementById("pause").value;
+  const datumStr = document.getElementById("datum").value;
+  const ortAbfahrt = document.getElementById("ortAbfahrt").value.trim();
+  const ortAnkunft = document.getElementById("ortAnkunft").value.trim();
+  const vonStr = document.getElementById("vonZeit").value;
+  const bisStr = document.getElementById("bisZeit").value;
+  const pauseStr = document.getElementById("pause").value;
 
-  const stdF = document.getElementById("std");
-  const weF = document.getElementById("weStd");
-  const nachtF = document.getElementById("nachtStd");
-  const spesenF = document.getElementById("spesen");
+  const stdFeld = document.getElementById("std");
+  const weStdFeld = document.getElementById("weStd");
+  const nachtStdFeld = document.getElementById("nachtStd");
+  const spesenFeld = document.getElementById("spesen");
 
-  const status = ["urlaub", "krank", "abbummeln"].includes(ortAb.toLowerCase());
-  if (status) {
-    stdF.value = weF.value = nachtF.value = "0,00";
-    spesenF.value = "0,00 €";
+  // Wochentag setzen
+  ermittleWochentagName(datumStr);
+
+  // Status-Tage => alles 0
+  if (isStatusDay(ortAbfahrt)) {
+    stdFeld.value = "0,00";
+    weStdFeld.value = "0,00";
+    nachtStdFeld.value = "0,00";
+    spesenFeld.value = "0,00 €";
     return;
   }
 
-  const v = parseTimeToMinutes(von);
-  let b = parseTimeToMinutes(bis);
-  if (v === null || b === null) return alert("Zeitangaben prüfen");
+  const vonMin = parseTimeToMinutes(vonStr);
+  const bisMinRaw = parseTimeToMinutes(bisStr);
+  if (vonMin === null || bisMinRaw === null) {
+    alert("Bitte gültige Zeiten für 'Von' und 'Bis' eingeben.");
+    return;
+  }
 
-  if (b <= v) b += 1440;
+  let bisMin = bisMinRaw;
+  if (bisMin <= vonMin) bisMin += 24 * 60; // über Mitternacht
 
-  let gesamt = b - v - parsePauseToMinutes(pause);
-  gesamt = Math.max(0, gesamt);
+  // Arbeitszeit minus Pause
+  let gesamtMin = bisMin - vonMin;
+  const pauseMin = parsePauseToMinutes(pauseStr);
+  gesamtMin = Math.max(0, gesamtMin - pauseMin);
 
-  const std = gesamt / 60;
-  stdF.value = formatNumberDE(std);
+  const gesamtStd = gesamtMin / 60;
+  stdFeld.value = formatNumberDE(gesamtStd);
 
-  const d = new Date(datum);
-  weF.value = (d.getDay() === 0 || d.getDay() === 6) ? formatNumberDE(std) : "0,00";
+  // Wochenende
+  let weStd = 0;
+  if (datumStr) {
+    const [y, m, d] = datumStr.split("-").map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    const dow = dateObj.getDay(); // 0=So, 6=Sa
+    if (dow === 0 || dow === 6) weStd = gesamtStd;
+  }
+  weStdFeld.value = formatNumberDE(weStd);
+
+  // Nachtstunden 22–06 (mind. 2h)
+  const arbeitStart = vonMin;
+  const arbeitEnde = bisMin;
 
   let nachtMin = 0;
-  nachtMin += overlapMinutes(v, b, 22 * 60, 24 * 60);
-  nachtMin += overlapMinutes(v, b, 0, 6 * 60);
-  nachtMin += overlapMinutes(v, b, 24 * 60, 30 * 60);
+  nachtMin += overlapMinutes(arbeitStart, arbeitEnde, 22 * 60, 24 * 60);          // 22–24
+  nachtMin += overlapMinutes(arbeitStart, arbeitEnde, 0, 6 * 60);                 // 00–06
+  nachtMin += overlapMinutes(arbeitStart, arbeitEnde, 24 * 60, 24 * 60 + 6 * 60); // 24–30
 
-  const nacht = nachtMin / 60;
-  nachtF.value = nacht >= 2 ? formatNumberDE(nacht) : "0,00";
+  let nachtStd = nachtMin / 60;
+  if (nachtStd < 2) nachtStd = 0;
+  nachtStdFeld.value = formatNumberDE(nachtStd);
 
-  const firma = ortAb.toLowerCase() === "firma" || ortAn.toLowerCase() === "firma";
-  spesenF.value = firma ? "14,00 €" : "28,00 €";
+  // Spesen
+  const istFirmaAbfahrt = ortAbfahrt.toLowerCase() === "firma";
+  const istFirmaAnkunft = ortAnkunft.toLowerCase() === "firma";
+  const spesen = (istFirmaAbfahrt || istFirmaAnkunft) ? 14 : 28;
+  spesenFeld.value = `${formatNumberDE(spesen)} €`;
 }
 
-// ===================== Einträge =====================
-function eintragHinzufuegen() {
-  berechne();
+function resetForm() {
+  // Datum bewusst nicht löschen
+  document.getElementById("ortAbfahrt").value = "";
+  document.getElementById("ortAnkunft").value = "";
+  document.getElementById("vonZeit").value = "";
+  document.getElementById("bisZeit").value = "";
+  document.getElementById("pause").value = "";
 
-  const datum = document.getElementById("datum").value;
-  if (!datum) return alert("Datum fehlt");
+  document.getElementById("std").value = "";
+  document.getElementById("weStd").value = "";
+  document.getElementById("nachtStd").value = "";
+  document.getElementById("spesen").value = "";
+}
 
-  const entry = {
-    datum,
-    ortAbfahrt: ortAbfahrt.value,
-    ortAnkunft: ortAnkunft.value,
-    von: vonZeit.value,
-    bis: bisZeit.value,
-    pause: pause.value,
-    std: std.value,
-    weStd: weStd.value,
-    nachtStd: nachtStd.value,
-    spesen: spesen.value
-  };
+// ===================== Month Storage =====================
+function saveMonth() {
+  try {
+    localStorage.setItem(monthKey(), JSON.stringify(eintraege));
+  } catch (e) {
+    console.error("Speichern fehlgeschlagen:", e);
+  }
+}
 
-  const idx = eintraege.findIndex(e => e.datum === datum);
-  if (idx >= 0) eintraege[idx] = entry;
-  else eintraege.push(entry);
+function loadMonth() {
+  const key = monthKey();
+  eintraege.length = 0;
 
-  saveMonth();
+  const raw = localStorage.getItem(key);
+  if (raw) {
+    try {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) arr.forEach(x => eintraege.push(x));
+    } catch (e) {
+      console.error("Laden fehlgeschlagen:", e);
+    }
+  }
   aktualisiereTabelleUndSummen();
 }
 
-// ===================== Tabelle =====================
-function aktualisiereTabelleUndSummen() {
-  const tbody = document.querySelector("#monatsTabelle tbody");
-  tbody.innerHTML = "";
+// ===================== CRUD Entries =====================
+function eintragHinzufuegen() {
+  const datumISO = document.getElementById("datum").value;
+  const ortAbfahrt = document.getElementById("ortAbfahrt").value.trim();
+  const ortAnkunft = document.getElementById("ortAnkunft").value.trim();
+  const vonStr = document.getElementById("vonZeit").value;
+  const bisStr = document.getElementById("bisZeit").value;
+  const pauseStr = document.getElementById("pause").value;
 
-  let sStd = 0, sWe = 0, sNacht = 0, sSp = 0;
+  if (!datumISO) {
+    alert("Bitte ein Datum eingeben.");
+    return;
+  }
 
-  eintraege.forEach((e, i) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${e.datum}</td>
-      <td>${e.ortAbfahrt}</td>
-      <td>${e.ortAnkunft}</td>
-      <td>${e.von}</td>
-      <td>${e.bis}</td>
-      <td>${e.std}</td>
-      <td>${e.weStd}</td>
-      <td>${e.pause}</td>
-      <td>${e.nachtStd}</td>
-      <td>${e.spesen}</td>
-    `;
-    tbody.appendChild(tr);
+  const statusDay = isStatusDay(ortAbfahrt);
+  if (!statusDay && (!vonStr || !bisStr)) {
+    alert("Bitte für Arbeitstage 'Von' und 'Bis' ausfüllen.");
+    return;
+  }
 
-    sStd += parseFloat(e.std.replace(",", ".")) || 0;
-    sWe += parseFloat(e.weStd.replace(",", ".")) || 0;
-    sNacht += parseFloat(e.nachtStd.replace(",", ".")) || 0;
-    sSp += parseFloat(e.spesen.replace("€", "").replace(",", ".")) || 0;
+  // berechnen (setzt Felder)
+  berechne();
+
+  const entry = {
+    tag: weekdayShortFromISO(datumISO),
+    datum: toGermanDate(datumISO),
+    ortAbfahrt,
+    ortAnkunft,
+    von: statusDay ? "" : vonStr,
+    bis: statusDay ? "" : bisStr,
+    std: document.getElementById("std").value || "0,00",
+    weStd: document.getElementById("weStd").value || "0,00",
+    pause: statusDay ? "" : pauseStr,
+    nachtStd: document.getElementById("nachtStd").value || "0,00",
+    spesen: document.getElementById("spesen").value || "0,00 €"
+  };
+
+  // Datum schon vorhanden? -> ersetzen statt doppelt
+  const idx = eintraege.findIndex(e => e.datum === entry.datum);
+  if (idx >= 0) eintraege[idx] = entry;
+  else eintraege.push(entry);
+
+  // nach Datum sortieren
+  eintraege.sort((a, b) => {
+    const da = parseGermanDateToDate(a.datum);
+    const db = parseGermanDateToDate(b.datum);
+    return (da?.getTime() || 0) - (db?.getTime() || 0);
   });
 
-  sumStd.textContent = formatNumberDE(sStd);
-  sumWeStd.textContent = formatNumberDE(sWe);
-  sumNachtStd.textContent = formatNumberDE(sNacht);
-  sumSpesen.textContent = formatNumberDE(sSp);
+  aktualisiereTabelleUndSummen();
+  saveMonth();
+
+  // UX: direkt Monatsübersicht anzeigen
+  const btnMonat = document.querySelector('.nav-btn[data-target="page-monat"]');
+  showPage("page-monat", btnMonat);
+}
+
+function eintragLoeschen(index) {
+  if (index < 0 || index >= eintraege.length) return;
+  eintraege.splice(index, 1);
+  aktualisiereTabelleUndSummen();
+  saveMonth();
+}
+
+function eintraegeLeeren() {
+  if (!confirm("Möchtest du wirklich alle Einträge dieses Monats löschen?")) return;
+  eintraege.length = 0;
+  aktualisiereTabelleUndSummen();
+  saveMonth();
+}
+
+// ===================== Table & Totals =====================
+function aktualisiereTabelleUndSummen() {
+  const tbody = document.querySelector("#monatsTabelle tbody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  let sumStd = 0, sumWe = 0, sumNacht = 0, sumSpesen = 0;
+
+  eintraege.forEach((e, index) => {
+    const tr = document.createElement("tr");
+
+    sumStd += parseFloat((e.std || "0").replace(",", ".")) || 0;
+    sumWe += parseFloat((e.weStd || "0").replace(",", ".")) || 0;
+    sumNacht += parseFloat((e.nachtStd || "0").replace(",", ".")) || 0;
+
+    const sp = String(e.spesen || "0").replace("€", "").replace(" ", "").replace(",", ".");
+    sumSpesen += parseFloat(sp) || 0;
+
+    tr.innerHTML = `
+      <td>${e.tag || ""}</td>
+      <td>${e.datum || ""}</td>
+      <td>${e.ortAbfahrt || ""}</td>
+      <td>${e.ortAnkunft || ""}</td>
+      <td>${e.von || ""}</td>
+      <td>${e.bis || ""}</td>
+      <td>${e.std || ""}</td>
+      <td>${e.weStd || ""}</td>
+      <td>${e.pause || ""}</td>
+      <td>${e.nachtStd || ""}</td>
+      <td>${e.spesen || ""}</td>
+      <td><button type="button" class="btn-danger small" onclick="eintragLoeschen(${index})">Löschen</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById("sumStd").textContent = formatNumberDE(sumStd);
+  document.getElementById("sumWeStd").textContent = formatNumberDE(sumWe);
+  document.getElementById("sumNachtStd").textContent = formatNumberDE(sumNacht);
+  document.getElementById("sumSpesen").textContent = formatNumberDE(sumSpesen);
+}
+
+// ===================== CSV Export =====================
+function csvExport() {
+  if (eintraege.length === 0) {
+    alert("Keine Einträge vorhanden.");
+    return;
+  }
+
+  // Stammdaten
+  const vorname = (localStorage.getItem("stundenapp_vorname") || "").trim();
+  const nachname = (localStorage.getItem("stundenapp_nachname") || "").trim();
+  if (!vorname || !nachname) {
+    alert("Bitte zuerst Vorname und Nachname unter Stammdaten eintragen.");
+    return;
+  }
+
+  const monatKurz = (document.getElementById("monat")?.value || "").trim();
+  const jahr = (document.getElementById("jahr")?.value || "").trim();
+  const monatLang = monthLongFromShort(monatKurz);
+
+  // Firmenkopf (hier anpassen, wenn nötig)
+  const firma = "Mader Transporte";
+  const adresse1 = "Heidekoppel 20";
+  const adresse2 = "24558 Henstedt-Ulzburg";
+
+  const empId = computeEmployeeId(vorname, nachname) || "OhneName";
+
+  let csv = "";
+  // Zeile 1: A1 + E1/F1/G1
+  csv += `${firma};;;;Name;${vorname};${nachname}\r\n`;
+  // Zeile 2: A2 + E2/F2/G2
+  csv += `${adresse1};;;;Monat/Jahr;${monatLang};${jahr}\r\n`;
+  // Zeile 3: A3
+  csv += `${adresse2}\r\n`;
+
+  // Zeile 4–7 leer (damit Tabellenkopf in Zeile 8 ist)
+  csv += `\r\n\r\n\r\n\r\n`;
+
+  // Zeile 8 Tabellenkopf
+  csv += "Tag;Datum;OrtAbfahrt;OrtAnkunft;Von;Bis;Std;WEStd;Pause;NachtStd;Spesen\r\n";
+
+  // Daten ab Zeile 9
+  eintraege.forEach((e) => {
+    const spesenClean = String(e.spesen || "").replace("€", "").trim();
+    csv += [
+      e.tag || "",
+      e.datum || "",
+      e.ortAbfahrt || "",
+      e.ortAnkunft || "",
+      e.von || "",
+      e.bis || "",
+      e.std || "",
+      e.weStd || "",
+      e.pause || "",
+      e.nachtStd || "",
+      spesenClean
+    ].join(";") + "\r\n";
+  });
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Stunden_${monatKurz || "Monat"}_${jahr || "Jahr"}_${empId}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  URL.revokeObjectURL(url);
 }
 
 // ===================== Init =====================
-
-// ID sofort setzen (wenn Name gespeichert ist)
-updateMitarbeiterIdAnzeige();
-
-// live aktualisieren beim Tippen
-document.getElementById("vorname")?.addEventListener("input", updateMitarbeiterIdAnzeige);
-document.getElementById("nachname")?.addEventListener("input", updateMitarbeiterIdAnzeige);
-
-
 document.addEventListener("DOMContentLoaded", () => {
-  const vor = document.getElementById("vorname");
-  const nach = document.getElementById("nachname");
+  // Navigation
+  document.querySelectorAll(".nav-btn").forEach(btn => {
+    btn.addEventListener("click", () => showPage(btn.dataset.target, btn));
+  });
 
-  vor.value = localStorage.getItem("stundenapp_vorname") || "";
-  nach.value = localStorage.getItem("stundenapp_nachname") || "";
+  // Buttons
+  document.getElementById("btnBerechne")?.addEventListener("click", berechne);
+  document.getElementById("btnResetForm")?.addEventListener("click", resetForm);
+  document.getElementById("btnAdd")?.addEventListener("click", eintragHinzufuegen);
+  document.getElementById("btnClear")?.addEventListener("click", eintraegeLeeren);
+  document.getElementById("btnCSV")?.addEventListener("click", csvExport);
 
+  document.getElementById("btnResetAll")?.addEventListener("click", () => {
+    if (!confirm("Alles zurücksetzen?")) return;
+    localStorage.clear();
+    location.reload();
+  });
+
+  // Stammdaten Elemente
+  const vornameEl = document.getElementById("vorname");
+  const nachnameEl = document.getElementById("nachname");
+  const monatEl = document.getElementById("monat");
+  const jahrEl = document.getElementById("jahr");
+  const datumEl = document.getElementById("datum");
+
+  // Stammdaten laden (Name)
+  if (vornameEl) vornameEl.value = localStorage.getItem("stundenapp_vorname") || "";
+  if (nachnameEl) nachnameEl.value = localStorage.getItem("stundenapp_nachname") || "";
+
+  // Default Monat/Jahr: Storage oder heute
+  const now = new Date();
+  const monateKurz = ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+
+  const savedMonat = localStorage.getItem("stundenapp_monat");
+  const savedJahr = localStorage.getItem("stundenapp_jahr");
+
+  if (monatEl) monatEl.value = savedMonat || monateKurz[now.getMonth()];
+  if (jahrEl) jahrEl.value = savedJahr || String(now.getFullYear());
+
+  // Mitarbeiter-ID sofort anzeigen
   updateMitarbeiterIdAnzeige();
 
-  vor.addEventListener("input", () => {
-    localStorage.setItem("stundenapp_vorname", vor.value.trim());
+  // Live speichern + ID aktualisieren
+  vornameEl?.addEventListener("input", () => {
+    localStorage.setItem("stundenapp_vorname", vornameEl.value.trim());
     updateMitarbeiterIdAnzeige();
+    loadMonth(); // Key ändert sich ggf. -> passenden Monat laden
   });
 
-  nach.addEventListener("input", () => {
-    localStorage.setItem("stundenapp_nachname", nach.value.trim());
+  nachnameEl?.addEventListener("input", () => {
+    localStorage.setItem("stundenapp_nachname", nachnameEl.value.trim());
     updateMitarbeiterIdAnzeige();
+    loadMonth(); // Key ändert sich ggf. -> passenden Monat laden
   });
 
+  monatEl?.addEventListener("change", () => {
+    localStorage.setItem("stundenapp_monat", monatEl.value.trim());
+    loadMonth();
+  });
+
+  jahrEl?.addEventListener("change", () => {
+    localStorage.setItem("stundenapp_jahr", jahrEl.value.trim());
+    loadMonth();
+  });
+
+  // Datum initial setzen (wenn leer)
+  if (datumEl && !datumEl.value) {
+    const yyyy = String(now.getFullYear());
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const dd = String(now.getDate()).padStart(2, "0");
+    datumEl.value = `${yyyy}-${mm}-${dd}`;
+  }
+  ermittleWochentagName(datumEl?.value);
+
+  // Wochentag bei Datum-Änderung
+  datumEl?.addEventListener("change", () => ermittleWochentagName(datumEl.value));
+
+  // Monatsdaten laden
   loadMonth();
 
-  btnBerechne.onclick = berechne;
-  btnAdd.onclick = eintragHinzufuegen;
+  // PWA: Service Worker registrieren
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").catch(console.error);
+  }
 });
 
+// Für Inline-Löschen Button
+window.eintragLoeschen = eintragLoeschen;
 
 
 
@@ -245,6 +529,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
      
+
 
 
 
