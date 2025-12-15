@@ -271,7 +271,12 @@ td:last-child{ text-align:center; }
   text-align:center;
   color: #768095;
   font-size: 0.82rem;
+
+.page { display: none; }
+.page.page-active { display: block; }
+
 }
+
 
 
 
