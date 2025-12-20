@@ -323,7 +323,7 @@ function berechne() {
   spesenFeld.value = `${formatNumberDE(spesen)} €`;
 }
 
-// ===================== Form Rese =====================
+// ===================== Form Reset =====================
 function resetForm() {
   document.getElementById("ortAbfahrt").value = "";
   document.getElementById("ortAnkunft").value = "";
