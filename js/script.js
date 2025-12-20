@@ -2,7 +2,19 @@
    Stunden-App – script.js (FINAL, komplett neu)
    ========================================================= */
 
+   const DISPO_EMAIL = "joerntiedemann@web.de"; // <- hier deine Zieladresse
+
+
 // ===================== Helpers =====================
+
+function openWebDeCompose(to, subject, body) {
+  // Web.de hat keine offiziell stabile "compose" URL, daher öffnen wir Web.de-Mail
+  // Empfänger/Betreff/Text können nicht garantiert automatisch gesetzt werden.
+  const url = "https://web.de/mail/";
+  window.open(url, "_blank");
+}
+
+
 function parseTimeToMinutes(timeStr) {
   if (!timeStr) return null;
   const [h, m] = timeStr.split(":").map(Number);
@@ -521,6 +533,27 @@ function csvExport() {
   document.body.removeChild(a);
 
   URL.revokeObjectURL(url);
+
+  // optional: Mail-App öffnen
+const willSend = confirm("CSV jetzt per E-Mail senden?");
+if (willSend) {
+  const monatKurz = (document.getElementById("monat")?.value || "").trim();
+  const jahr = (document.getElementById("jahr")?.value || "").trim();
+  const empId = document.getElementById("mitarbeiterIdAnzeige")?.value || "";
+  const subject = `Stundenliste ${monatKurz} ${jahr} (${empId})`;
+  const body =
+    `Hallo,\n\nanbei die exportierte CSV für ${monatKurz} ${jahr}.\n` +
+    `Dateiname: Stunden_${monatKurz}_${jahr}_${empId}.csv\n\n` +
+    `Viele Grüße`;
+
+  const mailto =
+    `mailto:${encodeURIComponent(DISPO_EMAIL)}` +
+    `?subject=${encodeURIComponent(subject)}` +
+    `&body=${encodeURIComponent(body)}`;
+
+  window.location.href = mailto;
+}
+
 }
 
 // ===================== Init =====================
@@ -636,6 +669,7 @@ window.eintragLoeschen = eintragLoeschen;
 
 
      
+
 
 
 
