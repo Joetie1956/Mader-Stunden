@@ -480,81 +480,67 @@ function aktualisiereTabelleUndSummen() {
 
 // ===================== CSV Export =====================
 function csvExport() {
-  if (eintraege.length === 0) return alert("Keine Einträge vorhanden.");
-
-  const vorname = (localStorage.getItem("stundenapp_vorname") || "").trim();
-  const nachname = (localStorage.getItem("stundenapp_nachname") || "").trim();
-  if (!vorname || !nachname) return alert("Bitte zuerst Vorname & Nachname eintragen.");
-
-  const monatKurz = (document.getElementById("monat")?.value || "").trim();
-  const jahr = (document.getElementById("jahr")?.value || "").trim() || getYearSafe();
-  const monatLang = monthLongFromShort(monatKurz);
-
-  // Firmenkopf (anpassen)
-  const firma = "Mader Transporte";
-  const adresse1 = "Heidekoppel 20";
-  const adresse2 = "24558 Henstedt-Ulzburg";
-
-  const empId = computeEmployeeId(vorname, nachname) || "OhneName";
+  if (eintraege.length === 0) {
+    alert("Keine Einträge vorhanden.");
+    return;
+  }
 
   let csv = "";
-  csv += `${firma};;;;Name;${vorname};${nachname}\r\n`;
-  csv += `${adresse1};;;;Monat/Jahr;${monatLang};${jahr}\r\n`;
-  csv += `${adresse2}\r\n`;
-  csv += `\r\n\r\n\r\n\r\n`; // bis Tabellenkopf Zeile 8
+  csv += "Firma\n";
+  csv += "Adresse\n";
+  csv += "Adresse\n";
+  csv += ";;;;Name;Vorname;Nachname\n";
+  csv += `;;;;Name;${vorname.value};${nachname.value}\n`;
+  csv += `;;;;Monat/Jahr;${monat.value} ${jahr.value};\n`;
+  csv += "\n";
+  csv += "Tag;Datum;Ort Abfahrt;Ort Ankunft;Von;Bis;Std;WE-Std;Pause;Nacht;Spesen\n";
 
-  csv += "Tag;Datum;OrtAbfahrt;OrtAnkunft;Von;Bis;Std;WEStd;Pause;NachtStd;Spesen\r\n";
-
-  eintraege.forEach((e) => {
+  eintraege.forEach(e => {
     const spesenClean = String(e.spesen || "").replace("€", "").trim();
     csv += [
-      e.tag || "",
-      e.datum || "",
-      e.ortAbfahrt || "",
-      e.ortAnkunft || "",
-      e.von || "",
-      e.bis || "",
-      e.std || "",
-      e.weStd || "",
-      e.pause || "",
-      e.nachtStd || "",
-      spesenClean,
-    ].join(";") + "\r\n";
+      e.tag,
+      e.datum,
+      e.ortAbfahrt,
+      e.ortAnkunft,
+      e.von,
+      e.bis,
+      e.std,
+      e.weStd,
+      e.pause,
+      e.nachtStd,
+      spesenClean
+    ].join(";") + "\n";
   });
+
+  const empId = document.getElementById("mitarbeiterIdAnzeige")?.value || "";
+  const fileName = `Stunden_${monat.value}_${jahr.value}_${empId}.csv`;
 
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement("a");
   a.href = url;
-  a.download = `Stunden_${monatKurz || "Monat"}_${jahr || "Jahr"}_${empId}.csv`;
+  a.download = fileName;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-
   URL.revokeObjectURL(url);
 
-  // optional: Mail-App öffnen
-const willSend = confirm("CSV jetzt per E-Mail senden?");
-if (willSend) {
-  const monatKurz = (document.getElementById("monat")?.value || "").trim();
-  const jahr = (document.getElementById("jahr")?.value || "").trim();
-  const empId = document.getElementById("mitarbeiterIdAnzeige")?.value || "";
-  const subject = `Stundenliste ${monatKurz} ${jahr} (${empId})`;
-  const body =
-    `Hallo,\n\nanbei die exportierte CSV für ${monatKurz} ${jahr}.\n` +
-    `Dateiname: Stunden_${monatKurz}_${jahr}_${empId}.csv\n\n` +
-    `Viele Grüße`;
+  const willSend = confirm("Die CSV jetzt per E-Mail senden?");
+  if (willSend) {
+    const subject = `Stundenliste ${monat.value} ${jahr.value} (${empId})`;
+    const body =
+      `Hallo,\n\nanbei die CSV-Datei:\n${fileName}\n\nViele Grüße`;
 
-  const mailto =
-    `mailto:${encodeURIComponent(DISPO_EMAIL)}` +
-    `?subject=${encodeURIComponent(subject)}` +
-    `&body=${encodeURIComponent(body)}`;
+    const mailto =
+      `mailto:${DISPO_EMAIL}` +
+      `?subject=${encodeURIComponent(subject)}` +
+      `&body=${encodeURIComponent(body)}`;
 
-  window.location.href = mailto;
+    window.location.href = mailto;
+  }
 }
 
-}
 
 // ===================== Init =====================
 document.addEventListener("DOMContentLoaded", () => {
@@ -669,6 +655,7 @@ window.eintragLoeschen = eintragLoeschen;
 
 
      
+
 
 
 
