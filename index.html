@@ -49,12 +49,26 @@
               <input id="nachname" type="text" placeholder="Mustermann" autocomplete="family-name" />
             </div>
 
+            <div class="urlaub-row">
+            <div class="form-row">
+             <label for="urlaubTotal">Urlaubstage / Jahr</label>
+             <input id="urlaubTotal" type="number" min="0" />
+           </div>
+
+          <div class="form-row">
+            <label for="urlaubRest">Resturlaub</label>
+            <input id="urlaubRest" type="number" readonly class="readonly" />
+         </div>
+        
+
+
+
             <div class="form-row">
               <label>Mitarbeiter-ID</label>
               <input id="mitarbeiterIdAnzeige" type="text" readonly class="readonly" />
               <small class="hint">
-              Diese ID wird automatisch aus Vorname + Nachname gebildet
-               und im CSV-Dateinamen verwendet.
+              Diese ID wird für CSV-Namen verwendet.
+               
            </small>
            </div>
 
@@ -226,6 +240,7 @@
   <script src="js/script.js"></script>
 </body>
 </html>
+
 
 
 
