@@ -1,4 +1,4 @@
-const CACHE_NAME = "stundenapp-v4"; // <<< bei jedem Update +1 erhöhen
+const CACHE_NAME = "stundenapp-v6"; // <<< bei jedem Update +1 erhöhen
 
 const ASSETS = [
   "./",
@@ -57,6 +57,7 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
+
 
 
 
