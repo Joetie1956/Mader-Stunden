@@ -26,10 +26,14 @@ body{
   padding: 14px;
 }
 
-.app-header{
-  text-align:center;
-  margin-bottom: 10px;
+.app-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;              /* ↓ Abstand Logo ↔ Titel */
+  margin-bottom: 1px;    /* ↓ Abstand zum Menü */
 }
+
 
 .logo-mader{
   width: 220px;
@@ -44,6 +48,8 @@ body{
   font-size: 1.75rem;
   font-weight: 800;
   color: var(--mader-green);
+  margin: 2px 0 0 0;     /* ↓ fast kein Abstand */
+  line-height: 1.15;
 }
 
 .app-subtitle{
@@ -57,7 +63,8 @@ body{
   gap:10px;
   justify-content:center;
   flex-wrap:wrap;
-  margin: 10px 0 14px;
+  margin-top: 2px;       /* ↓ näher ans Logo */
+  margin-bottom: 8px;
 }
 
 .nav-btn{
@@ -276,6 +283,30 @@ td:last-child{ text-align:center; }
 .page.page-active { display: block; }
 
 }
+
+/* ================= Urlaubstage nebeneinander ================= */
+
+.urlaub-row {
+  display: grid;
+  grid-template-columns: 160px 160px;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.urlaub-row .form-row {
+  margin-bottom: 0;
+}
+
+/* optional: Resturlaub visuell hervorheben */
+#urlaubRest {
+  font-weight: 700;
+  text-align: center;
+  background-color: #eef6f3;
+  border-color: #06c9b6;
+  color: #064e4a;
+}
+
 
 
 
