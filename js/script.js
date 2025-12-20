@@ -303,12 +303,12 @@ function berechne() {
   }
   weStdFeld.value = formatNumberDE(weStd);
 
-  // Nachtstunden 22–06 (mind. 2h)
+  // Nachtstunden 23–06 (mind. 2h)
   const arbeitStart = vonMin;
   const arbeitEnde = bisMin;
 
   let nachtMin = 0;
-  nachtMin += overlapMinutes(arbeitStart, arbeitEnde, 22 * 60, 24 * 60);
+  nachtMin += overlapMinutes(arbeitStart, arbeitEnde, 23 * 60, 24 * 60);
   nachtMin += overlapMinutes(arbeitStart, arbeitEnde, 0, 6 * 60);
   nachtMin += overlapMinutes(arbeitStart, arbeitEnde, 24 * 60, 24 * 60 + 6 * 60);
 
@@ -669,6 +669,7 @@ window.eintragLoeschen = eintragLoeschen;
 
 
      
+
 
 
 
