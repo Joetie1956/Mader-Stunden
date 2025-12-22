@@ -87,8 +87,9 @@ function monthLongFromShort(monatKurz) {
 
 function isStatusDay(ortAbfahrt) {
   const s = (ortAbfahrt || "").trim().toLowerCase();
-  return ["urlaub", "krank", "abbummeln"].includes(s);
+  return ["urlaub", "krank", "abbummeln", "feiertag"].includes(s);
 }
+
 
 // ===================== Navigation (Pages) =====================
 function showPage(pageId, clickedBtn) {
@@ -641,7 +642,6 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // Für Inline-Löschen Button
-window.eintragLoeschen = eintragLoeschen;
 
 
 
@@ -655,6 +655,7 @@ window.eintragLoeschen = eintragLoeschen;
 
 
      
+
 
 
 
