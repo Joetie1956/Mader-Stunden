@@ -486,15 +486,23 @@ function csvExport() {
     return;
   }
 
-  let csv = "";
-  csv += "Firma\n";
-  csv += "Adresse\n";
-  csv += "Adresse\n";
-  csv += ";;;;Name;Vorname;Nachname\n";
-  csv += `;;;;Name;${vorname.value};${nachname.value}\n`;
-  csv += `;;;;Monat/Jahr;${monat.value} ${jahr.value};\n`;
-  csv += "\n";
-  csv += "Tag;Datum;Ort Abfahrt;Ort Ankunft;Von;Bis;Std;WE-Std;Pause;Nacht;Spesen\n";
+ let csv = "";
+
+// Zeile 1: Firma + Name
+csv += `Mader-Transporte;;;;Name;${vorname.value};${nachname.value}\r\n`;
+
+// Zeile 2: Adresse
+csv += "Heidekoppel 20\r\n";
+
+// Zeile 3: Ort + Monat/Jahr
+csv += `24558 Henstedt-Ulzburg;;;;Monat/Jahr;${monat.value} ${jahr.value}\r\n`;
+
+// Zeile 4–7 leer (für Optik wie in Excel)
+csv += "\r\n\r\n\r\n\r\n";
+
+// Zeile 8: Tabellenkopf
+csv += "Tag;Datum;Ort Abfahrt;Ort Ankunft;Von;Bis;Std;WE-Std;Pause;Nacht;Spesen\r\n";
+
 
   eintraege.forEach(e => {
     const spesenClean = String(e.spesen || "").replace("€", "").trim();
@@ -642,6 +650,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // Für Inline-Löschen Button
+window.eintragLoeschen = eintragLoeschen;
 
 
 
@@ -655,6 +664,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
      
+
 
 
 
