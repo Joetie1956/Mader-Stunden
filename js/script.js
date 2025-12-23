@@ -7,6 +7,20 @@
 
 // ===================== Helpers =====================
 
+
+function jahr4stellig(jahrInput) {
+  const s = String(jahrInput || "").trim();
+  if (s.length === 2 && /^\d{2}$/.test(s)) {
+    return "20" + s; // 25 -> 2025
+  }
+  return s;
+}
+
+function monatJahrLang(monatKurz, jahrInput) {
+  return `${monatLangName(monatKurz)} ${jahr4stellig(jahrInput)}`;
+}
+
+
 function monatLangName(monatKurz) {
   const map = {
     Jan: "Januar",
@@ -498,7 +512,8 @@ csv += `Mader-Transporte;;;;Vorname;${vorname.value};${nachname.value}\r\n`;
 csv += "Heidekoppel 20\r\n";
 
 // Zeile 3 (JETZT SCHÖN)
-csv += `24558 Henstedt-Ulzburg;;;;Monat/Jahr;${monatLangName(monat.value)} ${jahr.value}\r\n`;
+csv += `24558 Henstedt-Ulzburg;;;;Monat/Jahr;${monatJahrLang(monat.value, jahr.value)}\r\n`;
+
 
 // Leerzeilen
 csv += "\r\n\r\n\r\n\r\n";
@@ -541,8 +556,8 @@ csv += "Tag;Datum;Ort Abfahrt;Ort Ankunft;Von;Bis;Std;WE-Std;Pause;Nacht;Spesen\
 
  const willSend = confirm("Die CSV jetzt per E-Mail senden?");
 if (willSend) {
-  const subjectRaw =
-    `Stundenliste ${monatLangName(monat.value)} ${jahr.value} (${empId})`;
+ const subjectRaw = `Stundenliste ${monatJahrLang(monat.value, jahr.value)} (${empId})`;
+
 
   const bodyRaw =
     `Hallo,
@@ -676,6 +691,7 @@ window.eintragLoeschen = eintragLoeschen;
 
 
      
+
 
 
 
