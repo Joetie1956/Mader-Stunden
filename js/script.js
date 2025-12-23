@@ -86,23 +86,7 @@ function parseGermanDateToDate(ddmmyyyy) {
   return new Date(yy, mm - 1, dd);
 }
 
-function monthLongFromShort(monatKurz) {
-  const map = {
-    Jan: "Januar",
-    Feb: "Februar",
-    Mär: "März",
-    Apr: "April",
-    Mai: "Mai",
-    Jun: "Juni",
-    Jul: "Juli",
-    Aug: "August",
-    Sep: "September",
-    Okt: "Oktober",
-    Nov: "November",
-    Dez: "Dezember",
-  };
-  return map[monatKurz] || monatKurz || "";
-}
+
 
 function isStatusDay(ortAbfahrt) {
   const s = (ortAbfahrt || "").trim().toLowerCase();
@@ -685,6 +669,7 @@ window.eintragLoeschen = eintragLoeschen;
 
 
      
+
 
 
 
