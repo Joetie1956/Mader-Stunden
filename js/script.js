@@ -539,20 +539,27 @@ csv += "Tag;Datum;Ort Abfahrt;Ort Ankunft;Von;Bis;Std;WE-Std;Pause;Nacht;Spesen\
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 
-  const willSend = confirm("Die CSV jetzt per E-Mail senden?");
-  if (willSend) {
-    const subject = `Stundenliste ${monatLangName(monat.value)} ${jahr.value}
- (${empId})`;
-    const body =
-      `Hallo,\n\nanbei die CSV-Datei:\n${fileName}\n\nViele Grüße`;
+ const willSend = confirm("Die CSV jetzt per E-Mail senden?");
+if (willSend) {
+  const subjectRaw =
+    `Stundenliste ${monatLangName(monat.value)} ${jahr.value} (${empId})`;
 
-    const mailto =
-      `mailto:${DISPO_EMAIL}` +
-      `?subject=${encodeURIComponent(subject)}` +
-      `&body=${encodeURIComponent(body)}`;
+  const bodyRaw =
+    `Hallo,
 
-    window.location.href = mailto;
-  }
+anbei die CSV-Datei:
+${fileName}
+
+Viele Grüße`;
+
+  const mailto =
+    `mailto:${DISPO_EMAIL}` +
+    `?subject=${encodeURIComponent(subjectRaw)}` +
+    `&body=${encodeURIComponent(bodyRaw)}`;
+
+  window.location.href = mailto;
+}
+
 }
 
 
@@ -669,6 +676,7 @@ window.eintragLoeschen = eintragLoeschen;
 
 
      
+
 
 
 
