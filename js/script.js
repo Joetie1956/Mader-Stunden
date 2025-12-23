@@ -7,6 +7,25 @@
 
 // ===================== Helpers =====================
 
+function monatLangName(monatKurz) {
+  const map = {
+    Jan: "Januar",
+    Feb: "Februar",
+    Mär: "März",
+    Apr: "April",
+    Mai: "Mai",
+    Jun: "Juni",
+    Jul: "Juli",
+    Aug: "August",
+    Sep: "September",
+    Okt: "Oktober",
+    Nov: "November",
+    Dez: "Dezember"
+  };
+  return map[monatKurz] || monatKurz;
+}
+
+
 function openWebDeCompose(to, subject, body) {
   // Web.de hat keine offiziell stabile "compose" URL, daher öffnen wir Web.de-Mail
   // Empfänger/Betreff/Text können nicht garantiert automatisch gesetzt werden.
@@ -486,22 +505,23 @@ function csvExport() {
     return;
   }
 
- let csv = "";
+let csv = "";
 
-// Zeile 1: Firma + Name
-csv += `Mader-Transporte;;;;Name;${vorname.value};${nachname.value}\r\n`;
+// Zeile 1
+csv += `Mader-Transporte;;;;Vorname;${vorname.value};${nachname.value}\r\n`;
 
-// Zeile 2: Adresse
+// Zeile 2
 csv += "Heidekoppel 20\r\n";
 
-// Zeile 3: Ort + Monat/Jahr
-csv += `24558 Henstedt-Ulzburg;;;;Monat/Jahr;${monat.value} ${jahr.value}\r\n`;
+// Zeile 3 (JETZT SCHÖN)
+csv += `24558 Henstedt-Ulzburg;;;;Monat/Jahr;${monatLangName(monat.value)} ${jahr.value}\r\n`;
 
-// Zeile 4–7 leer (für Optik wie in Excel)
+// Leerzeilen
 csv += "\r\n\r\n\r\n\r\n";
 
-// Zeile 8: Tabellenkopf
+// Tabellenkopf
 csv += "Tag;Datum;Ort Abfahrt;Ort Ankunft;Von;Bis;Std;WE-Std;Pause;Nacht;Spesen\r\n";
+
 
 
   eintraege.forEach(e => {
@@ -537,7 +557,8 @@ csv += "Tag;Datum;Ort Abfahrt;Ort Ankunft;Von;Bis;Std;WE-Std;Pause;Nacht;Spesen\
 
   const willSend = confirm("Die CSV jetzt per E-Mail senden?");
   if (willSend) {
-    const subject = `Stundenliste ${monat.value} ${jahr.value} (${empId})`;
+    const subject = `Stundenliste ${monatLangName(monat.value)} ${jahr.value}
+ (${empId})`;
     const body =
       `Hallo,\n\nanbei die CSV-Datei:\n${fileName}\n\nViele Grüße`;
 
@@ -664,6 +685,7 @@ window.eintragLoeschen = eintragLoeschen;
 
 
      
+
 
 
 
