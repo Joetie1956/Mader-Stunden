@@ -512,7 +512,9 @@ csv += `Mader-Transporte;;;;Vorname;${vorname.value};${nachname.value}\r\n`;
 csv += "Heidekoppel 20\r\n";
 
 // Zeile 3 (JETZT SCHÖN)
-csv += `24558 Henstedt-Ulzburg;;;;Monat/Jahr;${monatJahrLang(monat.value, jahr.value)}\r\n`;
+const monatJahrText = monatJahrLang(monat.value, jahr.value);
+csv += `24558 Henstedt-Ulzburg;;;;Monat/Jahr;="${monatJahrText}"\r\n`;
+
 
 
 // Leerzeilen
@@ -691,6 +693,7 @@ window.eintragLoeschen = eintragLoeschen;
 
 
      
+
 
 
 
