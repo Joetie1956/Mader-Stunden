@@ -545,7 +545,8 @@ csv += "Tag;Datum;Ort Abfahrt;Ort Ankunft;Von;Bis;Std;WE-Std;Pause;Nacht;Spesen\
   const empId = document.getElementById("mitarbeiterIdAnzeige")?.value || "";
   const fileName = `Stunden_${monat.value}_${jahr.value}_${empId}.csv`;
 
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const BOM = "\uFEFF"; // wichtig für Excel (UTF-8 BOM)
+  const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement("a");
@@ -693,6 +694,7 @@ window.eintragLoeschen = eintragLoeschen;
 
 
      
+
 
 
 
