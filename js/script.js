@@ -547,6 +547,7 @@ csv += "Tag;Datum;Ort Abfahrt;Ort Ankunft;Von;Bis;Std;WE-Std;Pause;Nacht;Spesen\
 
   const BOM = "\uFEFF"; // wichtig für Excel (UTF-8 BOM)
   const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
+
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement("a");
@@ -595,11 +596,35 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btnClear")?.addEventListener("click", eintraegeLeeren);
   document.getElementById("btnCSV")?.addEventListener("click", csvExport);
 
-  document.getElementById("btnResetAll")?.addEventListener("click", () => {
-    if (!confirm("Alles zurücksetzen?")) return;
-    localStorage.clear();
-    location.reload();
-  });
+ document.getElementById("btnResetAll").addEventListener("click", () => {
+  const ok = confirm(
+    "Möchtest du die Stammdaten wirklich zurücksetzen?\n\n" +
+    "Vorname, Nachname und Urlaubstage werden gelöscht.\n" +
+    "Deine Monatsdaten bleiben erhalten."
+  );
+
+  if (!ok) return;
+
+  // NUR Stammdaten löschen
+  localStorage.removeItem("stundenapp_vorname");
+  localStorage.removeItem("stundenapp_nachname");
+  localStorage.removeItem("stundenapp_urlaub_gesamt");
+  localStorage.removeItem("stundenapp_urlaub_genommen");
+
+  // Eingabefelder leeren
+  document.getElementById("vorname").value = "";
+  document.getElementById("nachname").value = "";
+  document.getElementById("urlaubGesamt").value = "";
+  document.getElementById("urlaubRest").value = "";
+
+  // Mitarbeiter-ID aktualisieren
+  if (typeof updateMitarbeiterIdAnzeige === "function") {
+    updateMitarbeiterIdAnzeige();
+  }
+
+  alert("Stammdaten wurden zurückgesetzt.\nMonatsdaten bleiben erhalten.");
+});
+
 
   // Stammdaten
   const vornameEl = document.getElementById("vorname");
@@ -694,6 +719,7 @@ window.eintragLoeschen = eintragLoeschen;
 
 
      
+
 
 
 
