@@ -78,6 +78,14 @@ function formatNumberDE(value) {
   return num.toFixed(2).replace(".", ",");
 }
 
+function nowHHMM() {
+  const d = new Date();
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
+
 function weekdayShortFromISO(iso) {
   if (!iso) return "";
   const [y, m, d] = iso.split("-").map(Number);
@@ -591,6 +599,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Buttons
   document.getElementById("btnBerechne")?.addEventListener("click", berechne);
+  document.getElementById("btnStartNow")?.addEventListener("click", () => {
+  const start = document.getElementById("vonZeit");
+  if (!start) return;
+
+  // optional: Überschreiben abfragen
+  if (start.value && !confirm("Start ist schon gesetzt. Überschreiben?")) return;
+
+  start.value = nowHHMM();
+});
+
+document.getElementById("btnEndNow")?.addEventListener("click", () => {
+  const ende = document.getElementById("bisZeit");
+  const start = document.getElementById("vonZeit");
+  if (!ende || !start) return;
+
+  if (!start.value) {
+    alert("Bitte zuerst Start drücken.");
+    return;
+  }
+
+  ende.value = nowHHMM();
+  berechne(); // automatisch berechnen
+});
+
   document.getElementById("btnResetForm")?.addEventListener("click", resetForm);
   document.getElementById("btnAdd")?.addEventListener("click", eintragHinzufuegen);
   document.getElementById("btnClear")?.addEventListener("click", eintraegeLeeren);
@@ -719,6 +751,7 @@ window.eintragLoeschen = eintragLoeschen;
 
 
      
+
 
 
 
