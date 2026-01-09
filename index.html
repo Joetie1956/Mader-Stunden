@@ -101,90 +101,102 @@
         </div>
       </section>
 
-      <!-- Tageserfassung -->
-      <section id="page-tag" class="page">
-        <div class="card">
-          <h2>Tageserfassung</h2>
+      
+     <!-- Tageserfassung -->
+<section id="page-tag" class="page">
+  <div class="card">
+    <h2>Tageserfassung</h2>
 
-          <div class="grid grid-2">
-            <div class="form-row">
-              <label for="datum">1) Datum</label>
-              <input id="datum" type="date" />
-            </div>
+    <div class="grid grid-2">
+      <div class="form-row">
+        <label for="datum">1) Datum</label>
+        <input id="datum" type="date" />
+      </div>
 
-            <div class="form-row">
-              <label>Wochentag</label>
-              <input id="wochentag" type="text" readonly class="readonly" placeholder="automatisch" />
-            </div>
+      <div class="form-row">
+        <label>Wochentag</label>
+        <input id="wochentag" type="text" readonly class="readonly" placeholder="automatisch" />
+      </div>
 
-            <div class="form-row">
-              <label for="ortAbfahrt">2) Ort Abfahrt</label>
-              <input id="ortAbfahrt" type="text" placeholder="z.B. Firma / Ort / Urlaub / Krank / Abbummeln / Feiertag" />
-              <small class="hint">Status-Tage: Urlaub, Krank, Abbummeln, Feiertag (keine Berechnung).</small>
-            </div>
+      <div class="form-row">
+        <label for="ortAbfahrt">2) Ort Abfahrt</label>
+        <input id="ortAbfahrt" type="text" placeholder="z.B. Firma / Stadt / Urlaub / Krank / Abbummeln / Feiertag" />
+        <small class="hint">Status-Tage: Urlaub, Krank, Abbummeln, Feiertag (keine Berechnung).</small>
+      </div>
 
-            <div class="form-row">
-              <label for="ortAnkunft">3) Ort Ankunft</label>
-              <input id="ortAnkunft" type="text" placeholder="z.B. Firma oder Ort" />
-            </div>
+      <div class="form-row">
+        <label for="ortAnkunft">3) Ort Ankunft</label>
+        <input id="ortAnkunft" type="text" placeholder="z.B. Firma oder Stadt" />
+      </div>
 
-            <div class="form-row">
-              <label for="vonZeit">4) Von</label>
-              <input id="vonZeit" type="time" />
-            </div>
-
-            <div class="form-row">
-              <label for="bisZeit">5) Bis</label>
-              <input id="bisZeit" type="time" />
-            </div>
-
-            <div class="form-row">
-              <label for="pause">8) Pause (Stunden)</label>
-              <input id="pause" type="text" inputmode="decimal" placeholder="z.B. 0,5" />
-              <small class="hint">Komma oder Punkt möglich.</small>
-            </div>
-          </div>
-
-          <div class="button-row button-row-inline">
-            <button type="button" class="btn-secondary" id="btnResetForm">Formular zurücksetzen</button>
-            <button type="button" class="btn-primary" id="btnBerechne">Nur berechnen</button>
-          </div>
+      <!-- START Button + Anzeige -->
+      <div class="form-row">
+        <label>4) Start (Jetzt)</label>
+        <div class="stamp-row">
+          <button type="button" class="btn-primary" id="btnStartNow">Start drücken</button>
+          <input id="vonZeit" type="text" class="readonly" readonly placeholder="--:--" />
         </div>
+        <small class="hint">Speichert die aktuelle Uhrzeit.</small>
+      </div>
 
-        <div class="card">
-          <h2>Berechnete Werte</h2>
-
-          <div class="grid grid-2">
-            <div class="form-row">
-              <label for="std">6) Std</label>
-              <input id="std" type="text" readonly class="readonly" />
-              <small class="hint">(Bis − Von) − Pause</small>
-            </div>
-
-            <div class="form-row">
-              <label for="weStd">7) WE-Std</label>
-              <input id="weStd" type="text" readonly class="readonly" />
-              <small class="hint">Sa/So → Std, sonst 0</small>
-            </div>
-
-            <div class="form-row">
-              <label for="nachtStd">9) Nacht-Std</label>
-              <input id="nachtStd" type="text" readonly class="readonly" />
-              <small class="hint">23:00–06:00 (nur  ≥ 2h)</small>
-            </div>
-
-            <div class="form-row">
-              <label for="spesen">10) Spesen</label>
-              <input id="spesen" type="text" readonly class="readonly" />
-              <small class="hint">Firma beteiligt → 14 €, sonst 28 €</small>
-            </div>
-          </div>
-
-          <div class="button-row">
-            <button type="button" class="btn-accent" id="btnAdd">Eintrag zur Monatsliste hinzufügen</button>
-          </div>
+      <!-- ENDE Button + Anzeige -->
+      <div class="form-row">
+        <label>5) Ende (Jetzt)</label>
+        <div class="stamp-row">
+          <button type="button" class="btn-primary" id="btnEndNow">Ende drücken</button>
+          <input id="bisZeit" type="text" class="readonly" readonly placeholder="--:--" />
         </div>
-      </section>
+        <small class="hint">Speichert die aktuelle Uhrzeit und berechnet automatisch.</small>
+      </div>
+
+      <div class="form-row">
+        <label for="pause">8) Pause (Stunden)</label>
+        <input id="pause" type="text" inputmode="decimal" placeholder="z.B. 0,5" />
+        <small class="hint">Komma oder Punkt möglich.</small>
+      </div>
+    </div>
+
+    <div class="button-row button-row-inline">
+      <button type="button" class="btn-secondary" id="btnResetForm">Formular zurücksetzen</button>
+      <button type="button" class="btn-primary" id="btnBerechne">Nur berechnen</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Berechnete Werte</h2>
+
+    <div class="grid grid-2">
+      <div class="form-row">
+        <label for="std">6) Std</label>
+        <input id="std" type="text" readonly class="readonly" />
+        <small class="hint">(Bis − Von) − Pause</small>
+      </div>
+
+      <div class="form-row">
+        <label for="weStd">7) WE-Std</label>
+        <input id="weStd" type="text" readonly class="readonly" />
+        <small class="hint">Sa/So → Std, sonst 0</small>
+      </div>
+
+      <div class="form-row">
+        <label for="nachtStd">9) Nacht-Std</label>
+        <input id="nachtStd" type="text" readonly class="readonly" />
+        <small class="hint">23:00–06:00 (nur wenn ≥ 2h) *</small>
+      </div>
+
+      <div class="form-row">
+        <label for="spesen">10) Spesen</label>
+        <input id="spesen" type="text" readonly class="readonly" />
+        <small class="hint">Firma beteiligt → 14 €, sonst 28 €</small>
+      </div>
+    </div>
+
+    <div class="button-row">
+      <button type="button" class="btn-accent" id="btnAdd">Eintrag zur Monatsliste hinzufügen</button>
+    </div>
+  </div>
+</section>
+
 
      <!-- Monatsübersicht -->
 <section id="page-monat" class="page">
@@ -240,6 +252,7 @@
   <script src="js/script.js"></script>
 </body>
 </html>
+
 
 
 
