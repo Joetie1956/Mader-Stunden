@@ -1,8 +1,8 @@
-/* =========================================================
-   Stunden-App – script.js (FINAL, komplett neu)
-   ========================================================= */
+/* ===========================
+   Stunden-App – script.js 
+   =========================== */
 
-   const DISPO_EMAIL = "joerntiedemann@web.de"; // <- hier deine Zieladresse
+   const DISPO_EMAIL = "joerntiedemann@web.de"; // <-  Zieladresse
 
 
 // ===================== Helpers =====================
@@ -719,6 +719,7 @@ window.eintragLoeschen = eintragLoeschen;
 
 
      
+
 
 
 
