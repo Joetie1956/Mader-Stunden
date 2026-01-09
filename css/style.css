@@ -307,16 +307,6 @@ td:last-child{ text-align:center; }
   color: #064e4a;
 }
 
-.stamp-row {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.stamp-row input {
-  flex: 1;
-  min-width: 110px;
-}
 
 
 
