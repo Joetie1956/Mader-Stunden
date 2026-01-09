@@ -1,61 +1,58 @@
-/* =========================================================
+/* ===========================
    Stunden-App – script.js 
-   ========================================================= */
+   =========================== */
 
+   const DISPO_EMAIL = "joerntiedemann@web.de"; // <-  Zieladresse
 
-let toastTimer = null;
-
-function showToast(msg, ms = 2400) {
-  const el = document.getElementById("appToast");
-  if (!el) return;
-  el.textContent = msg;
-  el.classList.add("show");
-  if (toastTimer) clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove("show"), ms);
-}
-
-function appConfirm(text, onYes, onNo) {
-  const overlay = document.getElementById("appConfirm");
-  const txt = document.getElementById("confirmText");
-  const btnYes = document.getElementById("confirmYes");
-  const btnNo = document.getElementById("confirmNo");
-
-  // Fallback (sollte nicht passieren)
-  if (!overlay || !txt || !btnYes || !btnNo) {
-    if (typeof onYes === "function") onYes();
-    return;
-  }
-
-  txt.textContent = text;
-  overlay.classList.remove("hidden");
-
-  const cleanup = () => {
-    overlay.classList.add("hidden");
-    btnYes.onclick = null;
-    btnNo.onclick = null;
-  };
-
-  btnYes.onclick = () => {
-    cleanup();
-    if (typeof onYes === "function") onYes();
-  };
-
-  btnNo.onclick = () => {
-    cleanup();
-    if (typeof onNo === "function") onNo();
-  };
-}
 
 // ===================== Helpers =====================
+
+
+function jahr4stellig(jahrInput) {
+  const s = String(jahrInput || "").trim();
+  if (s.length === 2 && /^\d{2}$/.test(s)) {
+    return "20" + s; // 25 -> 2025
+  }
+  return s;
+}
+
+function monatJahrLang(monatKurz, jahrInput) {
+  return `${monatLangName(monatKurz)} ${jahr4stellig(jahrInput)}`;
+}
+
+
+function monatLangName(monatKurz) {
+  const map = {
+    Jan: "Januar",
+    Feb: "Februar",
+    Mär: "März",
+    Apr: "April",
+    Mai: "Mai",
+    Jun: "Juni",
+    Jul: "Juli",
+    Aug: "August",
+    Sep: "September",
+    Okt: "Oktober",
+    Nov: "November",
+    Dez: "Dezember"
+  };
+  return map[monatKurz] || monatKurz;
+}
+
+
+function openWebDeCompose(to, subject, body) {
+  // Web.de hat keine offiziell stabile "compose" URL, daher öffnen wir Web.de-Mail
+  // Empfänger/Betreff/Text können nicht garantiert automatisch gesetzt werden.
+  const url = "https://web.de/mail/";
+  window.open(url, "_blank");
+}
+
+
 function parseTimeToMinutes(timeStr) {
   if (!timeStr) return null;
-  const s = String(timeStr).trim();
-  const m = s.match(/^(\d{1,2}):(\d{2})$/);
-  if (!m) return null;
-  const h = Number(m[1]);
-  const mi = Number(m[2]);
-  if (Number.isNaN(h) || Number.isNaN(mi)) return null;
-  return h * 60 + mi;
+  const [h, m] = timeStr.split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  return h * 60 + m;
 }
 
 function parsePauseToMinutes(pauseStr) {
@@ -81,77 +78,35 @@ function formatNumberDE(value) {
   return num.toFixed(2).replace(".", ",");
 }
 
-function toGermanDate(yyyyMmDd) {
-  if (!yyyyMmDd) return "";
-  const [y, m, d] = yyyyMmDd.split("-");
-  return `${d}.${m}.${y}`;
-}
-
-function todayGerman() {
-  const t = new Date();
-  const dd = String(t.getDate()).padStart(2, "0");
-  const mm = String(t.getMonth() + 1).padStart(2, "0");
-  const yy = t.getFullYear();
-  return `${dd}.${mm}.${yy}`;
-}
-
-function weekdayShortFromISO(datumStr) {
-  if (!datumStr) return "";
-  const [y, m, d] = datumStr.split("-").map(Number);
+function weekdayShortFromISO(iso) {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-").map(Number);
   const dateObj = new Date(y, m - 1, d);
   const w = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
   return w[dateObj.getDay()] || "";
 }
 
-function nowHHMM() {
-  const d = new Date();
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${hh}:${mm}`;
+function toGermanDate(iso) {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-");
+  return `${d}.${m}.${y}`;
 }
 
-function safeTrim(s) {
-  return String(s ?? "").trim();
+function parseGermanDateToDate(ddmmyyyy) {
+  const parts = String(ddmmyyyy).split(".");
+  if (parts.length !== 3) return null;
+  const [dd, mm, yy] = parts.map(Number);
+  if ([dd, mm, yy].some(Number.isNaN)) return null;
+  return new Date(yy, mm - 1, dd);
 }
 
-function normalizeEmpPart(s) {
-  // Entfernt Sonderzeichen für Dateinamen / ID
-  return safeTrim(s)
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Umlaute/Diakritika entfernen
-    .replace(/[^a-zA-Z0-9]+/g, "");
+
+
+function isStatusDay(ortAbfahrt) {
+  const s = (ortAbfahrt || "").trim().toLowerCase();
+  return ["urlaub", "krank", "abbummeln", "feiertag"].includes(s);
 }
 
-function buildEmpIdFromNames(vorname, nachname) {
-  const v = normalizeEmpPart(vorname);
-  const n = normalizeEmpPart(nachname);
-  if (!v && !n) return "";
-  const first = v ? v.charAt(0).toUpperCase() : "";
-  const last = n ? n.charAt(0).toUpperCase() + n.slice(1) : "";
-  return `${first}${last}`;
-}
-
-function monatLangName(monatKurz) {
-  const map = {
-    Jan: "Januar",
-    Feb: "Februar",
-    "Mär": "März",
-    Apr: "April",
-    Mai: "Mai",
-    Jun: "Juni",
-    Jul: "Juli",
-    Aug: "August",
-    Sep: "September",
-    Okt: "Oktober",
-    Nov: "November",
-    Dez: "Dezember"
-  };
-  return map[monatKurz] || monatKurz;
-}
-
-function monatJahrLang(monatKurz, jahr) {
-  return `${monatLangName(monatKurz)} ${String(jahr)}`;
-}
 
 // ===================== Navigation (Pages) =====================
 function showPage(pageId, clickedBtn) {
@@ -163,126 +118,130 @@ function showPage(pageId, clickedBtn) {
   if (clickedBtn) clickedBtn.classList.add("active");
 }
 
-// ===================== Storage Keys =====================
-function monthKey() {
-  const monat = safeTrim(document.getElementById("monat")?.value);
-  const jahr = safeTrim(document.getElementById("jahr")?.value);
-  return `stundenapp_eintraege_${jahr}_${monat}`;
+// ===================== Mitarbeiter-ID =====================
+function computeEmployeeId(vorname, nachname) {
+  const v = (vorname || "").trim();
+  const n = (nachname || "").trim();
+  if (!v || !n) return "";
+  return (v[0].toUpperCase() + n)
+    .replace(/\s+/g, "")
+    .replace(/[^a-zA-Z0-9ÄÖÜäöüß_-]/g, "");
 }
 
-// ===================== State =====================
+function updateMitarbeiterIdAnzeige() {
+  const vEl = document.getElementById("vorname");
+  const nEl = document.getElementById("nachname");
+  const idEl = document.getElementById("mitarbeiterIdAnzeige");
+  if (!vEl || !nEl || !idEl) return "";
+  const id = computeEmployeeId(vEl.value, nEl.value);
+  idEl.value = id;
+  return id;
+}
+
+// ===================== Safe Year =====================
+function getYearSafe() {
+  const jahrEl = document.getElementById("jahr");
+  const v = (jahrEl?.value || "").trim();
+  if (v) return v;
+  return String(new Date().getFullYear());
+}
+
+// ===================== Urlaub (2 Felder) =====================
+function getEmployeeKeyPart() {
+  const v = localStorage.getItem("stundenapp_vorname") || "";
+  const n = localStorage.getItem("stundenapp_nachname") || "";
+  return computeEmployeeId(v, n) || "OhneName";
+}
+
+function urlaubTotalKey() {
+  const jahr = getYearSafe();
+  const emp = getEmployeeKeyPart();
+  return `stundenapp_urlaub_total_${emp}_${jahr}`;
+}
+
+function urlaubDatesKey() {
+  const jahr = getYearSafe();
+  const emp = getEmployeeKeyPart();
+  return `stundenapp_urlaub_dates_${emp}_${jahr}`;
+}
+
+function loadUrlaubTotal() {
+  const raw = localStorage.getItem(urlaubTotalKey());
+  const n = raw ? parseInt(raw, 10) : NaN;
+  return Number.isFinite(n) && n >= 0 ? n : null; // null = nicht gesetzt
+}
+
+function saveUrlaubTotal(val) {
+  const n = Math.max(0, parseInt(val || "0", 10) || 0);
+  localStorage.setItem(urlaubTotalKey(), String(n));
+  return n;
+}
+
+function loadUrlaubDates() {
+  const raw = localStorage.getItem(urlaubDatesKey());
+  if (!raw) return [];
+  try {
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveUrlaubDates(arr) {
+  localStorage.setItem(urlaubDatesKey(), JSON.stringify(arr));
+}
+
+function isUrlaubEntry(entry) {
+  return (entry?.ortAbfahrt || "").trim().toLowerCase() === "urlaub";
+}
+
+function recalcUrlaubRestAnzeige() {
+  const totalEl = document.getElementById("urlaubTotal");
+  const restEl = document.getElementById("urlaubRest");
+  if (!totalEl || !restEl) return;
+
+  // Feldwert zuerst lesen (damit nichts „weg-0t“)
+  const fieldVal = parseInt(String(totalEl.value || "").trim(), 10);
+  const fieldHasNumber = Number.isFinite(fieldVal) && fieldVal >= 0;
+
+  const stored = loadUrlaubTotal();
+  let total;
+
+  if (stored === null) {
+    // noch nicht gespeichert
+    if (fieldHasNumber) {
+      total = saveUrlaubTotal(fieldVal);
+    } else {
+      total = 0;
+      saveUrlaubTotal(total);
+      totalEl.value = "0";
+    }
+  } else {
+    total = stored;
+    if (!fieldHasNumber) totalEl.value = String(total);
+  }
+
+  const dates = loadUrlaubDates();
+  const rest = Math.max(0, total - dates.length);
+  restEl.value = String(rest);
+}
+
+// ===================== Monatsdaten (pro Mitarbeiter+Monat+Jahr) =====================
+function monthKey() {
+  const monat = (document.getElementById("monat")?.value || "").trim();
+  const jahr = (document.getElementById("jahr")?.value || "").trim() || getYearSafe();
+  const emp = getEmployeeKeyPart();
+  return `stundenapp_eintraege_${emp}_${jahr}_${monat}`;
+}
+
 const eintraege = [];
 
-// ===================== Mitarbeiter-ID Anzeige =====================
-function updateMitarbeiterIdAnzeige() {
-  const vorname = document.getElementById("vorname");
-  const nachname = document.getElementById("nachname");
-  const out = document.getElementById("mitarbeiterIdAnzeige");
-  if (!vorname || !nachname || !out) return;
-
-  const empId = buildEmpIdFromNames(vorname.value, nachname.value);
-  out.value = empId || "";
-  localStorage.setItem("stundenapp_empid", empId || "");
-}
-
-// ===================== Day / Status =====================
-function ermittleWochentagName(datumStr) {
-  const tag = weekdayShortFromISO(datumStr);
-  const feld = document.getElementById("wochentag");
-  if (feld) feld.value = tag;
-  return tag;
-}
-
-function isStatusDay(ortAbfahrt) {
-  const s = safeTrim(ortAbfahrt).toLowerCase();
-  return ["urlaub", "krank", "abbummeln", "feiertag"].includes(s);
-}
-
-// ===================== Calculate Day =====================
-function berechne() {
-  const datumStr = document.getElementById("datum")?.value || "";
-  const ortAbfahrt = safeTrim(document.getElementById("ortAbfahrt")?.value);
-  const ortAnkunft = safeTrim(document.getElementById("ortAnkunft")?.value);
-  const vonStr = safeTrim(document.getElementById("vonZeit")?.value);
-  const bisStr = safeTrim(document.getElementById("bisZeit")?.value);
-  const pauseStr = safeTrim(document.getElementById("pause")?.value);
-
-  const stdFeld = document.getElementById("std");
-  const weStdFeld = document.getElementById("weStd");
-  const nachtStdFeld = document.getElementById("nachtStd");
-  const spesenFeld = document.getElementById("spesen");
-
-  // Wochentag
-  ermittleWochentagName(datumStr);
-
-  // Status-Tage: keine Berechnung
-  if (isStatusDay(ortAbfahrt)) {
-    if (stdFeld) stdFeld.value = "0,00";
-    if (weStdFeld) weStdFeld.value = "0,00";
-    if (nachtStdFeld) nachtStdFeld.value = "0,00";
-    if (spesenFeld) spesenFeld.value = "0,00 €";
-    showToast("Status-Tag erkannt – keine Berechnung.");
-    return;
-  }
-
-  const vonMin = parseTimeToMinutes(vonStr);
-  const bisMinRaw = parseTimeToMinutes(bisStr);
-
-  if (vonMin === null || bisMinRaw === null) {
-    showToast("Bitte gültige Zeiten für Von und Bis eingeben.");
-    return;
-  }
-
-  let bisMin = bisMinRaw;
-  if (bisMin <= vonMin) bisMin += 24 * 60; // über Mitternacht
-
-  let gesamtMin = bisMin - vonMin;
-  const pauseMin = parsePauseToMinutes(pauseStr);
-  gesamtMin = Math.max(0, gesamtMin - pauseMin);
-
-  const gesamtStd = gesamtMin / 60;
-  if (stdFeld) stdFeld.value = formatNumberDE(gesamtStd);
-
-  // Wochenende
-  let weStd = 0;
-  if (datumStr) {
-    const [y, m, d] = datumStr.split("-").map(Number);
-    const dateObj = new Date(y, m - 1, d);
-    const dow = dateObj.getDay(); // 0=So,6=Sa
-    if (dow === 0 || dow === 6) weStd = gesamtStd;
-  }
-  if (weStdFeld) weStdFeld.value = formatNumberDE(weStd);
-
-  // Nachtstunden: 23:00–06:00 (mind. 2h)
-  let arbeitStart = vonMin;
-  let arbeitEnde = bisMin;
-
-  let nachtMin = 0;
-  nachtMin += overlapMinutes(arbeitStart, arbeitEnde, 23 * 60, 24 * 60);          // 23–24
-  nachtMin += overlapMinutes(arbeitStart, arbeitEnde, 0, 6 * 60);                 // 00–06
-  nachtMin += overlapMinutes(arbeitStart, arbeitEnde, 24 * 60 + 23 * 60, 24 * 60 + 24 * 60); // falls >24h (theoretisch)
-  nachtMin += overlapMinutes(arbeitStart, arbeitEnde, 24 * 60, 24 * 60 + 6 * 60); // 24–30
-
-  let nachtStd = nachtMin / 60;
-  if (nachtStd < 2) nachtStd = 0;
-  if (nachtStdFeld) nachtStdFeld.value = formatNumberDE(nachtStd);
-
-  // Spesen
-  const istFirmaAbfahrt = ortAbfahrt.toLowerCase() === "firma";
-  const istFirmaAnkunft = ortAnkunft.toLowerCase() === "firma";
-  const spesen = (istFirmaAbfahrt || istFirmaAnkunft) ? 14 : 28;
-  if (spesenFeld) spesenFeld.value = `${formatNumberDE(spesen)} €`;
-
-  showToast("Berechnung abgeschlossen.");
-}
-
-// ===================== Month Storage =====================
 function saveMonth() {
   try {
     localStorage.setItem(monthKey(), JSON.stringify(eintraege));
   } catch (e) {
     console.error("Speichern fehlgeschlagen:", e);
-    showToast("Speichern fehlgeschlagen (Speicher voll?).");
   }
 }
 
@@ -297,52 +256,126 @@ function loadMonth() {
       if (Array.isArray(arr)) arr.forEach((x) => eintraege.push(x));
     } catch (e) {
       console.error("Laden fehlgeschlagen:", e);
-      showToast("Monatsdaten konnten nicht geladen werden.");
     }
   }
   aktualisiereTabelleUndSummen();
 }
 
-// ===================== CRUD Entries =====================
+// ===================== Wochentag =====================
+function ermittleWochentagName(datumISO) {
+  const tag = weekdayShortFromISO(datumISO);
+  const feld = document.getElementById("wochentag");
+  if (feld) feld.value = tag;
+  return tag;
+}
+
+// ===================== Tagesberechnung =====================
+function berechne() {
+  const datumISO = document.getElementById("datum").value;
+  const ortAbfahrt = document.getElementById("ortAbfahrt").value.trim();
+  const ortAnkunft = document.getElementById("ortAnkunft").value.trim();
+  const vonStr = document.getElementById("vonZeit").value;
+  const bisStr = document.getElementById("bisZeit").value;
+  const pauseStr = document.getElementById("pause").value;
+
+  const stdFeld = document.getElementById("std");
+  const weStdFeld = document.getElementById("weStd");
+  const nachtStdFeld = document.getElementById("nachtStd");
+  const spesenFeld = document.getElementById("spesen");
+
+  ermittleWochentagName(datumISO);
+
+  // Status Tage: alles 0
+  if (isStatusDay(ortAbfahrt)) {
+    stdFeld.value = "0,00";
+    weStdFeld.value = "0,00";
+    nachtStdFeld.value = "0,00";
+    spesenFeld.value = "0,00 €";
+    return;
+  }
+
+  const vonMin = parseTimeToMinutes(vonStr);
+  const bisMinRaw = parseTimeToMinutes(bisStr);
+
+  if (vonMin === null || bisMinRaw === null) {
+    alert("Bitte gültige Zeiten für 'Von' und 'Bis' eingeben.");
+    return;
+  }
+
+  let bisMin = bisMinRaw;
+  if (bisMin <= vonMin) bisMin += 24 * 60;
+
+  let gesamtMin = bisMin - vonMin;
+  const pauseMin = parsePauseToMinutes(pauseStr);
+  gesamtMin = Math.max(0, gesamtMin - pauseMin);
+
+  const gesamtStd = gesamtMin / 60;
+  stdFeld.value = formatNumberDE(gesamtStd);
+
+  // Wochenende
+  let weStd = 0;
+  if (datumISO) {
+    const [y, m, d] = datumISO.split("-").map(Number);
+    const dow = new Date(y, m - 1, d).getDay();
+    if (dow === 0 || dow === 6) weStd = gesamtStd;
+  }
+  weStdFeld.value = formatNumberDE(weStd);
+
+  // Nachtstunden 23–06 (mind. 2h)
+  const arbeitStart = vonMin;
+  const arbeitEnde = bisMin;
+
+  let nachtMin = 0;
+  nachtMin += overlapMinutes(arbeitStart, arbeitEnde, 23 * 60, 24 * 60);
+  nachtMin += overlapMinutes(arbeitStart, arbeitEnde, 0, 6 * 60);
+  nachtMin += overlapMinutes(arbeitStart, arbeitEnde, 24 * 60, 24 * 60 + 6 * 60);
+
+  let nachtStd = nachtMin / 60;
+  if (nachtStd < 2) nachtStd = 0;
+  nachtStdFeld.value = formatNumberDE(nachtStd);
+
+  // Spesen
+  const istFirmaAbfahrt = ortAbfahrt.toLowerCase() === "firma";
+  const istFirmaAnkunft = ortAnkunft.toLowerCase() === "firma";
+  const spesen = (istFirmaAbfahrt || istFirmaAnkunft) ? 14 : 28;
+  spesenFeld.value = `${formatNumberDE(spesen)} €`;
+}
+
+// ===================== Form Reset =====================
 function resetForm() {
   document.getElementById("ortAbfahrt").value = "";
   document.getElementById("ortAnkunft").value = "";
   document.getElementById("vonZeit").value = "";
   document.getElementById("bisZeit").value = "";
   document.getElementById("pause").value = "";
+
   document.getElementById("std").value = "";
   document.getElementById("weStd").value = "";
   document.getElementById("nachtStd").value = "";
   document.getElementById("spesen").value = "";
-  showToast("Formular zurückgesetzt.");
 }
 
+// ===================== Einträge CRUD =====================
 function eintragHinzufuegen() {
-  const datumStr = document.getElementById("datum")?.value || "";
-  const ortAbfahrt = safeTrim(document.getElementById("ortAbfahrt")?.value);
-  const ortAnkunft = safeTrim(document.getElementById("ortAnkunft")?.value);
-  const vonStr = safeTrim(document.getElementById("vonZeit")?.value);
-  const bisStr = safeTrim(document.getElementById("bisZeit")?.value);
-  const pauseStr = safeTrim(document.getElementById("pause")?.value);
+  const datumISO = document.getElementById("datum").value;
+  const ortAbfahrt = document.getElementById("ortAbfahrt").value.trim();
+  const ortAnkunft = document.getElementById("ortAnkunft").value.trim();
+  const vonStr = document.getElementById("vonZeit").value;
+  const bisStr = document.getElementById("bisZeit").value;
+  const pauseStr = document.getElementById("pause").value;
 
-  if (!datumStr) {
-    showToast("Bitte ein Datum eingeben.");
-    return;
-  }
+  if (!datumISO) return alert("Bitte ein Datum eingeben.");
 
   const statusDay = isStatusDay(ortAbfahrt);
-
   if (!statusDay && (!vonStr || !bisStr)) {
-    showToast("Bitte Start und Ende setzen (oder Status-Tag eintragen).");
-    return;
+    return alert("Bitte für Arbeitstage 'Von' und 'Bis' ausfüllen.");
   }
 
-  // vorher berechnen (Status-Day setzt 0,00)
   berechne();
 
   const entry = {
-    tag: weekdayShortFromISO(datumStr),
-    datum: toGermanDate(datumStr),
+    tag: weekdayShortFromISO(datumISO),
+    datum: toGermanDate(datumISO),
     ortAbfahrt,
     ortAnkunft,
     von: statusDay ? "" : vonStr,
@@ -351,29 +384,40 @@ function eintragHinzufuegen() {
     weStd: document.getElementById("weStd").value || "0,00",
     pause: statusDay ? "" : pauseStr,
     nachtStd: document.getElementById("nachtStd").value || "0,00",
-    spesen: document.getElementById("spesen").value || "0,00 €"
+    spesen: document.getElementById("spesen").value || "0,00 €",
   };
 
-  // Falls Datum schon existiert: ersetzen statt doppelt
+  // --- Urlaub-Jahresliste korrekt pflegen (bei Ersetzen) ---
+  const dates = loadUrlaubDates();
+  const entryDate = entry.datum;
+
   const idx = eintraege.findIndex((e) => e.datum === entry.datum);
-  if (idx >= 0) {
-    eintraege[idx] = entry;
+  const warUrlaub = idx >= 0 ? isUrlaubEntry(eintraege[idx]) : false;
+  const istUrlaub = isUrlaubEntry(entry);
+
+  if (idx >= 0) eintraege[idx] = entry;
+  else eintraege.push(entry);
+
+  const exists = dates.includes(entryDate);
+  if (!warUrlaub && istUrlaub && !exists) dates.push(entryDate);
+  if (warUrlaub && !istUrlaub && exists) {
+    saveUrlaubDates(dates.filter((d) => d !== entryDate));
   } else {
-    eintraege.push(entry);
+    saveUrlaubDates(dates);
   }
 
-  // nach Datum sortieren
+  // Sortieren
   eintraege.sort((a, b) => {
-    const [da, ma, ya] = a.datum.split(".").map(Number);
-    const [db, mb, yb] = b.datum.split(".").map(Number);
-    return new Date(ya, ma - 1, da) - new Date(yb, mb - 1, db);
+    const da = parseGermanDateToDate(a.datum);
+    const db = parseGermanDateToDate(b.datum);
+    return (da?.getTime() || 0) - (db?.getTime() || 0);
   });
 
   aktualisiereTabelleUndSummen();
   saveMonth();
-  showToast("Eintrag gespeichert.");
+  recalcUrlaubRestAnzeige();
 
-  // UX: direkt Monatsübersicht zeigen
+  // UX: Monatsübersicht zeigen
   const btnMonat = document.querySelector('.nav-btn[data-target="page-monat"]');
   showPage("page-monat", btnMonat);
 }
@@ -381,42 +425,47 @@ function eintragHinzufuegen() {
 function eintragLoeschen(index) {
   if (index < 0 || index >= eintraege.length) return;
 
-  appConfirm("Eintrag wirklich löschen?",
-    () => {
-      eintraege.splice(index, 1);
-      aktualisiereTabelleUndSummen();
-      saveMonth();
-      showToast("Eintrag gelöscht.");
-    }
-  );
+  const removed = eintraege[index];
+  eintraege.splice(index, 1);
+
+  // Urlaubstag entfernen, falls Urlaub
+  if (isUrlaubEntry(removed)) {
+    const dates = loadUrlaubDates().filter((d) => d !== removed.datum);
+    saveUrlaubDates(dates);
+  }
+
+  aktualisiereTabelleUndSummen();
+  saveMonth();
+  recalcUrlaubRestAnzeige();
 }
 
 function eintraegeLeeren() {
-  appConfirm("Möchtest du wirklich alle Einträge dieses Monats löschen?",
-    () => {
-      eintraege.length = 0;
-      aktualisiereTabelleUndSummen();
-      saveMonth();
-      showToast("Liste geleert.");
-    }
-  );
+  if (!confirm("Möchtest du wirklich alle Einträge dieses Monats löschen?")) return;
+
+  // Urlaubstage dieses Monats aus Jahresliste entfernen
+  const monthUrlaubDates = eintraege.filter(isUrlaubEntry).map((e) => e.datum);
+  if (monthUrlaubDates.length) {
+    const dates = loadUrlaubDates().filter((d) => !monthUrlaubDates.includes(d));
+    saveUrlaubDates(dates);
+  }
+
+  eintraege.length = 0;
+  aktualisiereTabelleUndSummen();
+  saveMonth();
+  recalcUrlaubRestAnzeige();
 }
 
-// ===================== Table & Totals =====================
+// ===================== Tabelle & Summen =====================
 function aktualisiereTabelleUndSummen() {
   const tbody = document.querySelector("#monatsTabelle tbody");
   if (!tbody) return;
-
   tbody.innerHTML = "";
-
-  const heuteStr = todayGerman();
 
   let sumStd = 0, sumWe = 0, sumNacht = 0, sumSpesen = 0;
 
   eintraege.forEach((e, index) => {
     const tr = document.createElement("tr");
 
-    // Summen
     sumStd += parseFloat((e.std || "0").replace(",", ".")) || 0;
     sumWe += parseFloat((e.weStd || "0").replace(",", ".")) || 0;
     sumNacht += parseFloat((e.nachtStd || "0").replace(",", ".")) || 0;
@@ -425,29 +474,19 @@ function aktualisiereTabelleUndSummen() {
     sumSpesen += parseFloat(sp) || 0;
 
     tr.innerHTML = `
-      <td>${e.tag}</td>
-      <td>${e.datum}</td>
-      <td>${e.ortAbfahrt}</td>
-      <td>${e.ortAnkunft}</td>
-      <td>${e.von}</td>
-      <td>${e.bis}</td>
-      <td>${e.std}</td>
-      <td>${e.weStd}</td>
-      <td>${e.pause}</td>
-      <td>${e.nachtStd}</td>
-      <td>${e.spesen}</td>
+      <td>${e.tag || ""}</td>
+      <td>${e.datum || ""}</td>
+      <td>${e.ortAbfahrt || ""}</td>
+      <td>${e.ortAnkunft || ""}</td>
+      <td>${e.von || ""}</td>
+      <td>${e.bis || ""}</td>
+      <td>${e.std || ""}</td>
+      <td>${e.weStd || ""}</td>
+      <td>${e.pause || ""}</td>
+      <td>${e.nachtStd || ""}</td>
+      <td>${e.spesen || ""}</td>
       <td><button type="button" class="btn-danger small" onclick="eintragLoeschen(${index})">Löschen</button></td>
     `;
-
-    // Optik
-    if (e.tag === "Sa" || e.tag === "So") tr.classList.add("row-weekend");
-    if (e.datum === heuteStr) tr.classList.add("row-today");
-    const status = safeTrim(e.ortAbfahrt).toLowerCase();
-    if (status === "urlaub") tr.classList.add("row-urlaub");
-    if (status === "krank") tr.classList.add("row-krank");
-    if (status === "abbummeln") tr.classList.add("row-abbummeln");
-    if (status === "feiertag") tr.classList.add("row-feiertag");
-
     tbody.appendChild(tr);
   });
 
@@ -458,44 +497,36 @@ function aktualisiereTabelleUndSummen() {
 }
 
 // ===================== CSV Export =====================
-// -> Adresse bleibt oben stehen
-// -> Vorname/Nachname in E1/F1/G1 Optik
-// -> Monat/Jahr in E2/F2/G2 Optik
-// -> Tabellenkopf in Zeile 8, Daten ab Zeile 9
-const DISPO_EMAIL = "birte@example.de"; // <-- HIER ggf. anpassen (nur Beispiel)
-
 function csvExport() {
   if (eintraege.length === 0) {
-    showToast("Keine Einträge vorhanden.");
+    alert("Keine Einträge vorhanden.");
     return;
   }
 
-  const vorname = safeTrim(document.getElementById("vorname")?.value);
-  const nachname = safeTrim(document.getElementById("nachname")?.value);
-  const monat = safeTrim(document.getElementById("monat")?.value);
-  const jahr = safeTrim(document.getElementById("jahr")?.value);
+let csv = "";
 
-  const empId =
-    localStorage.getItem("stundenapp_empid") ||
-    buildEmpIdFromNames(vorname, nachname) ||
-    "Mitarbeiter";
+// Zeile 1
+csv += `Mader-Transporte;;;;Vorname;${vorname.value};${nachname.value}\r\n`;
 
-  const fileName = `Stunden_${monat}_${jahr}_${empId}.csv`;
+// Zeile 2
+csv += "Heidekoppel 20\r\n";
 
-  let csv = "";
-  csv += "Mader-Transporte\r\n";
-  csv += "Heidekoppel 20\r\n";
-  csv += "24558 Henstedt-Ulzburg\r\n";
-  csv += `;;;;Name;${vorname};${nachname}\r\n`;
-  csv += `;;;;Monat/Jahr;${monatJahrLang(monat, jahr)};;\r\n`;
-  csv += "\r\n";
-  csv += "\r\n";
-  csv += "\r\n";
-  csv += "\r\n";
-  csv += "Tag;Datum;Ort Abfahrt;Ort Ankunft;Von;Bis;Std;WE-Std;Pause;Nacht;Spesen\r\n";
+// Zeile 3 (JETZT SCHÖN)
+const monatJahrText = monatJahrLang(monat.value, jahr.value);
+csv += `24558 Henstedt-Ulzburg;;;;Monat/Jahr;="${monatJahrText}"\r\n`;
 
-  eintraege.forEach((e) => {
-    const spesenClean = String(e.spesen || "").replace(" €", "").replace("€", "").trim();
+
+
+// Leerzeilen
+csv += "\r\n\r\n\r\n\r\n";
+
+// Tabellenkopf
+csv += "Tag;Datum;Ort Abfahrt;Ort Ankunft;Von;Bis;Std;WE-Std;Pause;Nacht;Spesen\r\n";
+
+
+
+  eintraege.forEach(e => {
+    const spesenClean = String(e.spesen || "").replace("€", "").trim();
     csv += [
       e.tag,
       e.datum,
@@ -508,12 +539,17 @@ function csvExport() {
       e.pause,
       e.nachtStd,
       spesenClean
-    ].join(";") + "\r\n";
+    ].join(";") + "\n";
   });
 
-  // Download
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const empId = document.getElementById("mitarbeiterIdAnzeige")?.value || "";
+  const fileName = `Stunden_${monat.value}_${jahr.value}_${empId}.csv`;
+
+  const BOM = "\uFEFF"; // wichtig für Excel (UTF-8 BOM)
+  const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
+
   const url = URL.createObjectURL(blob);
+
   const a = document.createElement("a");
   a.href = url;
   a.download = fileName;
@@ -522,32 +558,29 @@ function csvExport() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 
-  showToast(`CSV gespeichert: ${fileName}`);
+ const willSend = confirm("Die CSV jetzt per E-Mail senden?");
+if (willSend) {
+ const subjectRaw = `Stundenliste ${monatJahrLang(monat.value, jahr.value)} (${empId})`;
 
-  // Optional: Per Mail senden (Ja/Nein ohne Browser confirm)
-  appConfirm("Die CSV jetzt per E-Mail senden?",
-    () => {
-      const subject = `Stundenliste ${monatJahrLang(monat, jahr)} (${empId})`;
-      const body = `Hallo,\n\nanbei die CSV-Datei:\n${fileName}\n\nViele Grüße\n${vorname} ${nachname}`;
-      const mailto =
-        `mailto:${DISPO_EMAIL}` +
-        `?subject=${encodeURIComponent(subject)}` +
-        `&body=${encodeURIComponent(body)}`;
 
-      window.location.href = mailto;
-    },
-    () => {
-      showToast("OK – du kannst später senden.");
-    }
-  );
+  const bodyRaw =
+    `Hallo,
+
+anbei die CSV-Datei:
+${fileName}
+
+Viele Grüße`;
+
+  const mailto =
+    `mailto:${DISPO_EMAIL}` +
+    `?subject=${encodeURIComponent(subjectRaw)}` +
+    `&body=${encodeURIComponent(bodyRaw)}`;
+
+  window.location.href = mailto;
 }
 
-// ===================== PWA Service Worker =====================
-function registerServiceWorker() {
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js").catch((e) => console.error(e));
-  }
 }
+
 
 // ===================== Init =====================
 document.addEventListener("DOMContentLoaded", () => {
@@ -556,125 +589,122 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.addEventListener("click", () => showPage(btn.dataset.target, btn));
   });
 
-  // Buttons: Standard
+  // Buttons
   document.getElementById("btnBerechne")?.addEventListener("click", berechne);
   document.getElementById("btnResetForm")?.addEventListener("click", resetForm);
   document.getElementById("btnAdd")?.addEventListener("click", eintragHinzufuegen);
   document.getElementById("btnClear")?.addEventListener("click", eintraegeLeeren);
   document.getElementById("btnCSV")?.addEventListener("click", csvExport);
 
-  // Start/Ende "Jetzt"
-  document.getElementById("btnStartNow")?.addEventListener("click", () => {
-    const start = document.getElementById("vonZeit");
-    if (!start) return;
+ document.getElementById("btnResetAll").addEventListener("click", () => {
+  const ok = confirm(
+    "Möchtest du die Stammdaten wirklich zurücksetzen?\n\n" +
+    "Vorname, Nachname und Urlaubstage werden gelöscht.\n" +
+    "Deine Monatsdaten bleiben erhalten."
+  );
 
-    if (start.value) {
-      appConfirm("Start ist schon gesetzt. Überschreiben?",
-        () => {
-          start.value = nowHHMM();
-          showToast("Start gespeichert.");
-        }
-      );
-      return;
-    }
+  if (!ok) return;
 
-    start.value = nowHHMM();
-    showToast("Start gespeichert.");
-  });
+  // NUR Stammdaten löschen
+  localStorage.removeItem("stundenapp_vorname");
+  localStorage.removeItem("stundenapp_nachname");
+  localStorage.removeItem("stundenapp_urlaub_gesamt");
+  localStorage.removeItem("stundenapp_urlaub_genommen");
 
-  document.getElementById("btnEndNow")?.addEventListener("click", () => {
-    const ende = document.getElementById("bisZeit");
-    const start = document.getElementById("vonZeit");
-    if (!ende || !start) return;
+  // Eingabefelder leeren
+  document.getElementById("vorname").value = "";
+  document.getElementById("nachname").value = "";
+  document.getElementById("urlaubGesamt").value = "";
+  document.getElementById("urlaubRest").value = "";
 
-    if (!start.value) {
-      showToast("Bitte zuerst Start drücken.");
-      return;
-    }
+  // Mitarbeiter-ID aktualisieren
+  if (typeof updateMitarbeiterIdAnzeige === "function") {
+    updateMitarbeiterIdAnzeige();
+  }
 
-    ende.value = nowHHMM();
-    berechne();
-  });
+  alert("Stammdaten wurden zurückgesetzt.\nMonatsdaten bleiben erhalten.");
+});
 
-  // Stammdaten Elemente
+
+  // Stammdaten
   const vornameEl = document.getElementById("vorname");
   const nachnameEl = document.getElementById("nachname");
   const monatEl = document.getElementById("monat");
   const jahrEl = document.getElementById("jahr");
   const datumEl = document.getElementById("datum");
 
-  // Names load/save
+  // Name laden
   if (vornameEl) vornameEl.value = localStorage.getItem("stundenapp_vorname") || "";
   if (nachnameEl) nachnameEl.value = localStorage.getItem("stundenapp_nachname") || "";
 
-  // Mitarbeiter-ID Anzeige initial
+  // Monat/Jahr laden oder heute setzen
+  const now = new Date();
+  const monateKurz = ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+
+  const savedMonat = localStorage.getItem("stundenapp_monat");
+  const savedJahr = localStorage.getItem("stundenapp_jahr");
+
+  if (monatEl) monatEl.value = savedMonat || monateKurz[now.getMonth()];
+  if (jahrEl) jahrEl.value = savedJahr || String(now.getFullYear());
+
+  // Mitarbeiter-ID sofort
   updateMitarbeiterIdAnzeige();
 
-  // Name speichern + ID aktualisieren
+  // Name speichern + ID aktualisieren + Daten neu laden (weil Key ändert)
   vornameEl?.addEventListener("input", () => {
-    localStorage.setItem("stundenapp_vorname", safeTrim(vornameEl.value));
+    localStorage.setItem("stundenapp_vorname", vornameEl.value.trim());
     updateMitarbeiterIdAnzeige();
+    loadMonth();
+    recalcUrlaubRestAnzeige();
   });
 
   nachnameEl?.addEventListener("input", () => {
-    localStorage.setItem("stundenapp_nachname", safeTrim(nachnameEl.value));
+    localStorage.setItem("stundenapp_nachname", nachnameEl.value.trim());
     updateMitarbeiterIdAnzeige();
+    loadMonth();
+    recalcUrlaubRestAnzeige();
   });
 
-  // Default Datum/Monat/Jahr setzen
-  const now = new Date();
-  const yyyy = String(now.getFullYear());
-  const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const dd = String(now.getDate()).padStart(2, "0");
+  // Monat/Jahr speichern + Monat laden
+  monatEl?.addEventListener("change", () => {
+    localStorage.setItem("stundenapp_monat", monatEl.value.trim());
+    loadMonth();
+  });
 
-  if (jahrEl && !jahrEl.value) jahrEl.value = yyyy;
-  if (monatEl && typeof monatEl.selectedIndex === "number" && monatEl.selectedIndex < 0) {
-    monatEl.selectedIndex = now.getMonth();
-  } else if (monatEl) {
-    // Wenn Monat noch leer/ungültig, setze auf aktuellen Index
-    const idx = now.getMonth();
-    if (!monatEl.value) monatEl.selectedIndex = idx;
-  }
+  jahrEl?.addEventListener("change", () => {
+    localStorage.setItem("stundenapp_jahr", jahrEl.value.trim());
+    loadMonth();
+    recalcUrlaubRestAnzeige();
+  });
 
+  // Datum initial
   if (datumEl && !datumEl.value) {
+    const yyyy = String(now.getFullYear());
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const dd = String(now.getDate()).padStart(2, "0");
     datumEl.value = `${yyyy}-${mm}-${dd}`;
   }
-  if (datumEl) ermittleWochentagName(datumEl.value);
+  ermittleWochentagName(datumEl?.value);
 
-  // Wochentag aktualisieren
-  datumEl?.addEventListener("change", () => {
-    ermittleWochentagName(datumEl.value);
+  datumEl?.addEventListener("change", () => ermittleWochentagName(datumEl.value));
+
+  // Urlaub init + speichern
+  recalcUrlaubRestAnzeige();
+  document.getElementById("urlaubTotal")?.addEventListener("input", (e) => {
+    saveUrlaubTotal(e.target.value);
+    recalcUrlaubRestAnzeige();
   });
 
-  // Monat/Jahr geändert -> Monatsdaten laden
-  function onMonthOrYearChange() {
-    loadMonth();
-    showToast("Monatsdaten geladen.");
-  }
-  monatEl?.addEventListener("change", onMonthOrYearChange);
-  jahrEl?.addEventListener("change", onMonthOrYearChange);
-
-  // Initial month load
+  // Monatsdaten initial laden
   loadMonth();
 
-  // "Alles zurücksetzen" -> NUR Stammdaten löschen (Monatsdaten bleiben!)
-  document.getElementById("btnResetAll")?.addEventListener("click", () => {
-    appConfirm(
-      "Möchtest du nur die Stammdaten (Vorname/Nachname/ID) zurücksetzen?",
-      () => {
-        localStorage.removeItem("stundenapp_vorname");
-        localStorage.removeItem("stundenapp_nachname");
-        localStorage.removeItem("stundenapp_empid");
-        location.reload();
-      }
-    );
-  });
-
-  // PWA
-  registerServiceWorker();
+  // PWA: Service Worker registrieren
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").catch(console.error);
+  }
 });
 
-// Inline delete button needs global
+// Für Inline-Löschen Button
 window.eintragLoeschen = eintragLoeschen;
 
 
@@ -689,6 +719,7 @@ window.eintragLoeschen = eintragLoeschen;
 
 
      
+
 
 
 
