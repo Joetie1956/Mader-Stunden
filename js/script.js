@@ -7,6 +7,22 @@
 
 // ===================== Helpers =====================
 
+let toastTimer = null;
+
+function showToast(msg, ms = 2200) {
+  const el = document.getElementById("appToast");
+  if (!el) return;
+
+  el.textContent = msg;
+  el.classList.add("show");
+
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    el.classList.remove("show");
+  }, ms);
+}
+
+
 
 function jahr4stellig(jahrInput) {
   const s = String(jahrInput || "").trim();
@@ -298,7 +314,7 @@ function berechne() {
   const bisMinRaw = parseTimeToMinutes(bisStr);
 
   if (vonMin === null || bisMinRaw === null) {
-    alert("Bitte gültige Zeiten für 'Von' und 'Bis' eingeben.");
+    showToast("Bitte gültige Zeiten für 'Von' und 'Bis' eingeben.");
     return;
   }
 
@@ -364,11 +380,11 @@ function eintragHinzufuegen() {
   const bisStr = document.getElementById("bisZeit").value;
   const pauseStr = document.getElementById("pause").value;
 
-  if (!datumISO) return alert("Bitte ein Datum eingeben.");
+  if (!datumISO) return showToast("Bitte ein Datum eingeben.");
 
   const statusDay = isStatusDay(ortAbfahrt);
   if (!statusDay && (!vonStr || !bisStr)) {
-    return alert("Bitte für Arbeitstage 'Von' und 'Bis' ausfüllen.");
+    return showToast("Bitte für Arbeitstage 'Von' und 'Bis' ausfüllen.");
   }
 
   berechne();
@@ -499,7 +515,7 @@ function aktualisiereTabelleUndSummen() {
 // ===================== CSV Export =====================
 function csvExport() {
   if (eintraege.length === 0) {
-    alert("Keine Einträge vorhanden.");
+    showToast("Keine Einträge vorhanden.");
     return;
   }
 
@@ -622,7 +638,7 @@ document.addEventListener("DOMContentLoaded", () => {
     updateMitarbeiterIdAnzeige();
   }
 
-  alert("Stammdaten wurden zurückgesetzt.\nMonatsdaten bleiben erhalten.");
+  showToast("Stammdaten wurden zurückgesetzt.\nMonatsdaten bleiben erhalten.");
 });
 
 
@@ -719,6 +735,7 @@ window.eintragLoeschen = eintragLoeschen;
 
 
      
+
 
 
 
