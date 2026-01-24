@@ -23,6 +23,9 @@
       
     </header>
 
+    <div id="appToast" class="toast" role="status" aria-live="polite"></div>
+
+
     <!-- Navigation -->
     <nav class="top-nav" aria-label="Navigation">
       <button class="nav-btn active" type="button" data-target="page-stammdaten">Stammdaten</button>
@@ -237,9 +240,25 @@
     </footer>
   </div>
 
+  <!-- Toast -->
+<div id="appToast" class="toast" aria-live="polite"></div>
+
+<!-- Confirm-Dialog -->
+<div id="appConfirm" class="confirm-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="confirmText">
+  <div class="confirm-box">
+    <p id="confirmText" class="confirm-text">Möchtest du fortfahren?</p>
+    <div class="confirm-actions">
+      <button id="confirmNo" type="button" class="btn-secondary">Nein</button>
+      <button id="confirmYes" type="button" class="btn-danger">Ja</button>
+    </div>
+  </div>
+</div>
+
+
   <script src="js/script.js"></script>
 </body>
 </html>
+
 
 
 
