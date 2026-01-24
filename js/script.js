@@ -1,15 +1,11 @@
 /* =========================================================
-   Stunden-App – script.js FINAL v5
-   - KEIN alert() / KEIN confirm() -> eigener Dialog (kein GitHub-Hinweis)
-   - Toast + Ja/Nein-Dialog
-   - Navigation (3 Seiten)
-   - Monats-Speicherung pro Monat/Jahr (localStorage)
-   - Mitarbeiter-ID Anzeige (aus Vorname + Nachname)
+   Stunden-App – script.js FINAL v6 (Daten + Urlaub FIX)
+   - KEIN alert() / KEIN window.confirm()  -> eigener Dialog/Toast
+   - Monatsdaten kompatibel laden (alte Keys finden)
+   - Urlaub pro Jahr: Gesamt + Rest (Rest = Gesamt - genommene Urlaubstage im Jahr)
    - Status-Tage: Urlaub/Krank/Abbummeln/Feiertag -> keine Berechnung
-   - Jahresurlaub (Gesamt + Rest) pro Jahr gespeichert
-     Rest = Gesamt - (Anzahl Einträge mit Ort Abfahrt = "Urlaub" im ganzen Jahr)
-   - Tabelle: Löschen-Button OHNE inline onclick (nur addEventListener)
-   - CSV Export + optional Mailto über appConfirm
+   - Navigation 3 Seiten
+   - CSV Download + optional Mailto
    ========================================================= */
 
 // ===================== App UI (Toast + Confirm) =====================
@@ -30,7 +26,7 @@ function appConfirm(text, onYes, onNo) {
   const btnYes = document.getElementById("confirmYes");
   const btnNo = document.getElementById("confirmNo");
 
-  // Fallback (sollte nicht passieren, aber sicher)
+  // Fallback – falls Dialog-HTML nicht existiert
   if (!overlay || !txt || !btnYes || !btnNo) {
     if (typeof onYes === "function") onYes();
     return;
@@ -165,20 +161,40 @@ function showPage(pageId, clickedBtn) {
   if (clickedBtn) clickedBtn.classList.add("active");
 }
 
-// ===================== Storage / State =====================
+// ===================== State =====================
 const eintraege = [];
 
-// Monats-Speicherkey
+// ===================== Storage Keys (kompatibel) =====================
+function normalizeMonthShort(m) {
+  const s = safeTrim(m);
+
+  const short = ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+  if (short.includes(s)) return s;
+
+  // Nummern-Monate zulassen
+  const n = parseInt(s, 10);
+  if (!Number.isNaN(n) && n >= 1 && n <= 12) return short[n - 1];
+
+  // Lange Monatsnamen zulassen
+  const mapLong = {
+    januar:"Jan", februar:"Feb", märz:"Mär", maerz:"Mär", april:"Apr", mai:"Mai", juni:"Jun",
+    juli:"Jul", august:"Aug", september:"Sep", oktober:"Okt", november:"Nov", dezember:"Dez"
+  };
+  const low = s.toLowerCase();
+  if (mapLong[low]) return mapLong[low];
+
+  return s;
+}
+
+function monthKeyFor(jahr, monat) {
+  const m = normalizeMonthShort(monat);
+  return `stundenapp_eintraege_${jahr}_${m}`;
+}
+
 function monthKey() {
   const monat = safeTrim(document.getElementById("monat")?.value);
   const jahr = safeTrim(document.getElementById("jahr")?.value);
-  return `stundenapp_eintraege_${jahr}_${monat}`;
-}
-
-// Jahres-Speicherkey (Urlaub)
-function yearKey() {
-  const jahr = safeTrim(document.getElementById("jahr")?.value);
-  return `stundenapp_urlaub_${jahr}`;
+  return monthKeyFor(jahr, monat);
 }
 
 function saveMonth() {
@@ -191,20 +207,39 @@ function saveMonth() {
 }
 
 function loadMonth() {
-  const key = monthKey();
+  const jahr = safeTrim(document.getElementById("jahr")?.value);
+  const monat = safeTrim(document.getElementById("monat")?.value);
+
+  const kurz = normalizeMonthShort(monat);
+
+  // Wir probieren mehrere Key-Varianten (damit alte Daten wieder auftauchen)
+  const keysToTry = [
+    `stundenapp_eintraege_${jahr}_${kurz}`,                 // neu/normal
+    `stundenapp_eintraege_${jahr}_${kurz.toLowerCase()}`,   // falls früher klein
+    `stundenapp_eintraege_${jahr}_${String(parseInt(monat,10) || "").padStart(2,"0")}`, // 01..12
+    `stundenapp_eintraege_${jahr}_${String(parseInt(monat,10) || "")}`                 // 1..12
+  ].filter(k => !k.endsWith("_"));
+
   eintraege.length = 0;
 
-  const raw = localStorage.getItem(key);
-  if (raw) {
+  let foundRaw = null;
+  for (const k of keysToTry) {
+    const raw = localStorage.getItem(k);
+    if (raw) { foundRaw = raw; break; }
+  }
+
+  if (foundRaw) {
     try {
-      const arr = JSON.parse(raw);
-      if (Array.isArray(arr)) arr.forEach((x) => eintraege.push(x));
+      const arr = JSON.parse(foundRaw);
+      if (Array.isArray(arr)) arr.forEach(x => eintraege.push(x));
     } catch (e) {
       console.error("Laden fehlgeschlagen:", e);
       showToast("Monatsdaten konnten nicht geladen werden.");
     }
   }
+
   aktualisiereTabelleUndSummen();
+  recalcRestUrlaubFromStorage();
 }
 
 // ===================== Mitarbeiter-ID Anzeige =====================
@@ -220,11 +255,23 @@ function updateMitarbeiterIdAnzeige() {
 }
 
 // ===================== Urlaub (Jahr) =====================
-// Zählt Urlaubstage aus ALLEN Monaten des Jahres (nicht nur aktueller Monat)
+function yearKey() {
+  const jahr = safeTrim(document.getElementById("jahr")?.value);
+  return `stundenapp_urlaub_${jahr}`;
+}
+
+function saveYearUrlaub(gesamt, rest) {
+  try {
+    localStorage.setItem(yearKey(), JSON.stringify({ gesamt, rest }));
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+// zählt Urlaub über ALLE Monate des Jahres (aus localStorage)
 function countUrlaubInYear(jahr) {
   const keys = Object.keys(localStorage);
-  const prefix = `stundenapp_eintraege_${jahr}_`; // z.B. stundenapp_eintraege_2025_Jan
-
+  const prefix = `stundenapp_eintraege_${jahr}_`;
   let used = 0;
 
   keys.forEach((k) => {
@@ -234,8 +281,7 @@ function countUrlaubInYear(jahr) {
       if (!raw) return;
       const arr = JSON.parse(raw);
       if (!Array.isArray(arr)) return;
-
-      used += arr.filter((e) => safeTrim(e?.ortAbfahrt).toLowerCase() === "urlaub").length;
+      used += arr.filter(e => safeTrim(e?.ortAbfahrt).toLowerCase() === "urlaub").length;
     } catch (_) {}
   });
 
@@ -258,19 +304,10 @@ function loadYearUrlaub() {
     } catch (_) {}
   }
 
-  // Wenn Rest leer -> aus Gesamt & genommene Tage berechnen
+  // immer neu berechnen (damit es stimmt)
   recalcRestUrlaubFromStorage();
 }
 
-function saveYearUrlaub(gesamt, rest) {
-  try {
-    localStorage.setItem(yearKey(), JSON.stringify({ gesamt, rest }));
-  } catch (e) {
-    console.error(e);
-  }
-}
-
-// Rest = Gesamt - genommene Urlaubstage im ganzen Jahr
 function recalcRestUrlaubFromStorage() {
   const elGesamt = document.getElementById("urlaubJahrGesamt");
   const elRest = document.getElementById("urlaubRest");
@@ -287,7 +324,7 @@ function recalcRestUrlaubFromStorage() {
   saveYearUrlaub(elGesamt.value, elRest.value);
 }
 
-// ===================== Day / Status =====================
+// ===================== Status / Day =====================
 function ermittleWochentagName(datumStr) {
   const tag = weekdayShortFromISO(datumStr);
   const feld = document.getElementById("wochentag");
@@ -314,7 +351,6 @@ function berechne() {
   const nachtStdFeld = document.getElementById("nachtStd");
   const spesenFeld = document.getElementById("spesen");
 
-  // Wochentag
   ermittleWochentagName(datumStr);
 
   // Status-Tage: keine Berechnung
@@ -350,16 +386,16 @@ function berechne() {
   if (datumStr) {
     const [y, m, d] = datumStr.split("-").map(Number);
     const dateObj = new Date(y, m - 1, d);
-    const dow = dateObj.getDay(); // 0=So,6=Sa
+    const dow = dateObj.getDay();
     if (dow === 0 || dow === 6) weStd = gesamtStd;
   }
   if (weStdFeld) weStdFeld.value = formatNumberDE(weStd);
 
   // Nachtstunden: 23:00–06:00 (mind. 2h)
   let nachtMin = 0;
-  nachtMin += overlapMinutes(vonMin, bisMin, 23 * 60, 24 * 60);          // 23–24
-  nachtMin += overlapMinutes(vonMin, bisMin, 0, 6 * 60);                 // 00–06
-  nachtMin += overlapMinutes(vonMin, bisMin, 24 * 60, 24 * 60 + 6 * 60); // 24–30
+  nachtMin += overlapMinutes(vonMin, bisMin, 23 * 60, 24 * 60);
+  nachtMin += overlapMinutes(vonMin, bisMin, 0, 6 * 60);
+  nachtMin += overlapMinutes(vonMin, bisMin, 24 * 60, 24 * 60 + 6 * 60);
 
   let nachtStd = nachtMin / 60;
   if (nachtStd < 2) nachtStd = 0;
@@ -402,7 +438,6 @@ function eintragHinzufuegen() {
   }
 
   const statusDay = isStatusDay(ortAbfahrt);
-
   if (!statusDay && (!vonStr || !bisStr)) {
     showToast("Bitte Von und Bis eingeben (oder Status-Tag).");
     return;
@@ -424,7 +459,6 @@ function eintragHinzufuegen() {
     spesen: document.getElementById("spesen").value || "0,00 €"
   };
 
-  // Datum vorhanden? -> ersetzen
   const idx = eintraege.findIndex((e) => e.datum === entry.datum);
   if (idx >= 0) {
     eintraege[idx] = entry;
@@ -432,7 +466,6 @@ function eintragHinzufuegen() {
     eintraege.push(entry);
   }
 
-  // Sortieren nach Datum
   eintraege.sort((a, b) => {
     const [da, ma, ya] = a.datum.split(".").map(Number);
     const [db, mb, yb] = b.datum.split(".").map(Number);
@@ -441,13 +474,10 @@ function eintragHinzufuegen() {
 
   aktualisiereTabelleUndSummen();
   saveMonth();
-
-  // Urlaub Rest neu berechnen (aus Speicher über alle Monate)
   recalcRestUrlaubFromStorage();
 
   showToast("Eintrag gespeichert.");
 
-  // Direkt Monatsübersicht zeigen
   const btnMonat = document.querySelector('.nav-btn[data-target="page-monat"]');
   showPage("page-monat", btnMonat);
 }
@@ -478,7 +508,7 @@ function eintraegeLeeren() {
   );
 }
 
-// ===================== Table & Totals (ohne inline onclick) =====================
+// ===================== Table & Totals =====================
 function aktualisiereTabelleUndSummen() {
   const tbody = document.querySelector("#monatsTabelle tbody");
   if (!tbody) return;
@@ -491,7 +521,6 @@ function aktualisiereTabelleUndSummen() {
   eintraege.forEach((e, index) => {
     const tr = document.createElement("tr");
 
-    // Summen
     sumStd += parseFloat((e.std || "0").replace(",", ".")) || 0;
     sumWe += parseFloat((e.weStd || "0").replace(",", ".")) || 0;
     sumNacht += parseFloat((e.nachtStd || "0").replace(",", ".")) || 0;
@@ -514,16 +543,15 @@ function aktualisiereTabelleUndSummen() {
       <td></td>
     `;
 
-    // Optik (falls du CSS Klassen hast)
     if (e.tag === "Sa" || e.tag === "So") tr.classList.add("row-weekend");
     if (e.datum === heuteStr) tr.classList.add("row-today");
+
     const status = safeTrim(e.ortAbfahrt).toLowerCase();
     if (status === "urlaub") tr.classList.add("row-urlaub");
     if (status === "krank") tr.classList.add("row-krank");
     if (status === "abbummeln") tr.classList.add("row-abbummeln");
     if (status === "feiertag") tr.classList.add("row-feiertag");
 
-    // Löschbutton
     const actionTd = tr.lastElementChild;
     const delBtn = document.createElement("button");
     delBtn.type = "button";
@@ -541,9 +569,9 @@ function aktualisiereTabelleUndSummen() {
   document.getElementById("sumSpesen").textContent = formatNumberDE(sumSpesen);
 }
 
-// ===================== CSV Export (ohne alert/confirm) =====================
-// DISPO Email hier setzen
-const DISPO_EMAIL = "birte@example.de"; // <-- anpassen
+// ===================== CSV Export =====================
+// Disponentin-Mail hier eintragen
+const DISPO_EMAIL = "birte@example.de"; // <-- HIER anpassen
 
 function csvExport() {
   if (eintraege.length === 0) {
@@ -570,11 +598,8 @@ function csvExport() {
   csv += `;;;;Name;${vorname};${nachname}\r\n`;
   csv += `;;;;Monat/Jahr;${monatJahrLang(monat, jahr)};;\r\n`;
 
-  // Leerzeilen -> Tabellenkopf in Zeile 8
-  csv += "\r\n";
-  csv += "\r\n";
-  csv += "\r\n";
-  csv += "\r\n";
+  // Leerzeilen -> Tabellenkopf soll später erscheinen
+  csv += "\r\n\r\n\r\n\r\n";
 
   csv += "Tag;Datum;Ort Abfahrt;Ort Ankunft;Von;Bis;Std;WE-Std;Pause;Nacht;Spesen\r\n";
 
@@ -595,7 +620,6 @@ function csvExport() {
     ].join(";") + "\r\n";
   });
 
-  // Download
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -608,7 +632,6 @@ function csvExport() {
 
   showToast(`CSV gespeichert: ${fileName}`);
 
-  // Optional: Mailto
   appConfirm(
     "Die CSV jetzt per E-Mail senden?",
     () => {
@@ -621,9 +644,7 @@ function csvExport() {
 
       window.location.href = mailto;
     },
-    () => {
-      showToast("OK – du kannst später senden.");
-    }
+    () => showToast("OK – du kannst später senden.")
   );
 }
 
@@ -636,65 +657,61 @@ function registerServiceWorker() {
 
 // ===================== Init =====================
 document.addEventListener("DOMContentLoaded", () => {
-  // Navigation Buttons
+  // Navigation
   document.querySelectorAll(".nav-btn").forEach((btn) => {
     btn.addEventListener("click", () => showPage(btn.dataset.target, btn));
   });
 
-  // Action Buttons (IDs müssen im HTML so existieren!)
+  // Buttons
   document.getElementById("btnBerechne")?.addEventListener("click", berechne);
   document.getElementById("btnResetForm")?.addEventListener("click", resetForm);
   document.getElementById("btnAdd")?.addEventListener("click", eintragHinzufuegen);
   document.getElementById("btnClear")?.addEventListener("click", eintraegeLeeren);
   document.getElementById("btnCSV")?.addEventListener("click", csvExport);
 
-  // Stammdaten Elemente
+  // Stammdaten
   const vornameEl = document.getElementById("vorname");
   const nachnameEl = document.getElementById("nachname");
   const monatEl = document.getElementById("monat");
   const jahrEl = document.getElementById("jahr");
   const datumEl = document.getElementById("datum");
-
-  // Urlaub (IDs müssen so heißen!)
   const urlaubGesamtEl = document.getElementById("urlaubJahrGesamt");
 
-  // Laden
+  // Namen laden
   if (vornameEl) vornameEl.value = localStorage.getItem("stundenapp_vorname") || "";
   if (nachnameEl) nachnameEl.value = localStorage.getItem("stundenapp_nachname") || "";
 
-  // Mitarbeiter-ID initial
+  // ID anzeigen
   updateMitarbeiterIdAnzeige();
 
-  // Speichern + ID aktualisieren
+  // Namen speichern
   vornameEl?.addEventListener("input", () => {
     localStorage.setItem("stundenapp_vorname", safeTrim(vornameEl.value));
     updateMitarbeiterIdAnzeige();
   });
-
   nachnameEl?.addEventListener("input", () => {
     localStorage.setItem("stundenapp_nachname", safeTrim(nachnameEl.value));
     updateMitarbeiterIdAnzeige();
   });
 
-  // Default Datum/Monat/Jahr
+  // Default Datum/Monat/Jahr nur setzen, wenn leer
   const now = new Date();
   const yyyy = String(now.getFullYear());
   const mm = String(now.getMonth() + 1).padStart(2, "0");
   const dd = String(now.getDate()).padStart(2, "0");
 
   if (jahrEl && !jahrEl.value) jahrEl.value = yyyy;
-  if (monatEl && !monatEl.value) {
-    monatEl.selectedIndex = now.getMonth();
+
+  if (monatEl) {
+    // select: wenn noch nichts gewählt, auf aktuellen Monat
+    if (monatEl.selectedIndex < 0) monatEl.selectedIndex = now.getMonth();
   }
-  if (datumEl && !datumEl.value) {
-    datumEl.value = `${yyyy}-${mm}-${dd}`;
-  }
+
+  if (datumEl && !datumEl.value) datumEl.value = `${yyyy}-${mm}-${dd}`;
   if (datumEl) ermittleWochentagName(datumEl.value);
 
-  // Datum geändert -> Wochentag
   datumEl?.addEventListener("change", () => ermittleWochentagName(datumEl.value));
 
-  // Wenn Monat/Jahr geändert wird -> Monatsdaten + Jahresurlaub neu
   function onMonthOrYearChange() {
     loadMonth();
     loadYearUrlaub();
@@ -704,17 +721,12 @@ document.addEventListener("DOMContentLoaded", () => {
   monatEl?.addEventListener("change", onMonthOrYearChange);
   jahrEl?.addEventListener("change", onMonthOrYearChange);
 
-  // Initial Laden
-  loadMonth();
-  loadYearUrlaub();
-  recalcRestUrlaubFromStorage();
-
-  // Jahresurlaub ändern -> Rest neu berechnen (genommene Tage bleiben)
+  // Urlaub Gesamt ändern -> Rest neu berechnen
   urlaubGesamtEl?.addEventListener("input", () => {
     recalcRestUrlaubFromStorage();
   });
 
-  // Alles zurücksetzen -> NUR Stammdaten (ohne Monatsdaten!)
+  // Alles zurücksetzen -> NUR Stammdaten (Monatsdaten bleiben!)
   document.getElementById("btnResetAll")?.addEventListener("click", () => {
     appConfirm(
       "Möchtest du nur die Stammdaten (Vorname/Nachname/ID) zurücksetzen?",
@@ -728,11 +740,16 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   });
 
+  // Initial: Laden
+  loadMonth();
+  loadYearUrlaub();
+  recalcRestUrlaubFromStorage();
+
   // PWA
   registerServiceWorker();
 });
 
-// Optional: Exports (falls noch irgendwo gebraucht)
+// Optional globale Exports (falls du irgendwo inline nutzt)
 window.showPage = showPage;
 window.berechne = berechne;
 window.resetForm = resetForm;
@@ -752,6 +769,7 @@ window.csvExport = csvExport;
 
 
      
+
 
 
 
