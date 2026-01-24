@@ -578,7 +578,7 @@ function csvExport() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 
-  showToast(`CSV gespeichert: ${fileName}`);
+  showToast(`CSV gespeichert.Bitte jetzt die Datei als Anhang zur E-Mail an Birte hinzufügen.  ${fileName}`);
 
   appConfirm(
     "Die CSV jetzt per E-Mail senden?",
@@ -721,6 +721,7 @@ window.eintragLoeschen = eintragLoeschen;
 
 
      
+
 
 
 
