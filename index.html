@@ -237,9 +237,27 @@
     </footer>
   </div>
 
+  <!-- Toast (kleine Hinweise unten am Bildschirm) -->
+<div id="appToast" class="app-toast" aria-live="polite"></div>
+
+<!-- Confirm-Dialog (Ja/Nein) -->
+<div id="appConfirm" class="confirm-overlay hidden" role="dialog" aria-modal="true">
+  <div class="confirm-box">
+    <p id="confirmText" class="confirm-text">Möchtest du fortfahren?</p>
+    <div class="confirm-actions">
+      <button id="confirmNo" type="button" class="btn-secondary">Nein</button>
+      <button id="confirmYes" type="button" class="btn-primary">Ja</button>
+    </div>
+  </div>
+</div>
+
+
+
   <script src="js/script.js"></script>
 </body>
 </html>
+
+
 
 
 
