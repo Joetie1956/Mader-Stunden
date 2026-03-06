@@ -4,7 +4,7 @@
    - Kein "Auf GitHub wird angezeigt..." mehr (kein alert/confirm)
    =========================== */
 
-const DISPO_EMAIL = "joerntiedemann@web.de"; // Zieladresse
+const DISPO_EMAIL = "b.rumi@mader-transporte.de"; // Zieladresse
 
 // ===================== Mini-UI: Toast + Confirm =====================
 let toastTimer = null;
@@ -721,6 +721,7 @@ window.eintragLoeschen = eintragLoeschen;
 
 
      
+
 
 
 
