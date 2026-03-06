@@ -351,11 +351,25 @@ function berechne() {
   if (nachtStd < 2) nachtStd = 0;
   nachtStdFeld.value = formatNumberDE(nachtStd);
 
-  const istFirmaAbfahrt = ortAbfahrt.toLowerCase() === "firma";
-  const istFirmaAnkunft = ortAnkunft.toLowerCase() === "firma";
-  const spesen = (istFirmaAbfahrt || istFirmaAnkunft) ? 14 : 28;
-  spesenFeld.value = `${formatNumberDE(spesen)} €`;
-  showToast("Berechnet.");
+  // Spesenberechnung
+let spesen = 0;
+
+const istFirmaAbfahrt = ortAbfahrt.toLowerCase() === "firma";
+const istFirmaAnkunft = ortAnkunft.toLowerCase() === "firma";
+
+// 28 € immer, wenn weder Abfahrt noch Ankunft Firma ist
+if (!istFirmaAbfahrt && !istFirmaAnkunft) {
+  spesen = 28;
+} else {
+  // Firma ist bei Abfahrt oder Ankunft beteiligt
+  if (gesamtStd < 8) {
+    spesen = 0;
+  } else {
+    spesen = 14;
+  }
+}
+
+spesenFeld.value = `${formatNumberDE(spesen)} €`;
 }
 
 // ===================== Form Reset =====================
@@ -721,6 +735,7 @@ window.eintragLoeschen = eintragLoeschen;
 
 
      
+
 
 
 
