@@ -64,8 +64,8 @@ function jahr4stellig(jahrInput) {
 
 function monatLangName(monatKurz) {
   const map = {
-    Jan: "Januar", Feb: "Februar", März: "März", Apr: "April", Mai: "Mai", Juni: "Juni",
-    Juli: "Juli", Aug: "August", Sep: "September", Okt: "Oktober", Nov: "November", Dez: "Dezember"
+    Jan: "Januar", Feb: "Februar", Mär: "März", Apr: "April", Mai: "Mai", Jun: "Juni",
+    Juli: "Jul", Aug: "August", Sep: "September", Okt: "Oktober", Nov: "November", Dez: "Dezember"
   };
   return map[monatKurz] || monatKurz;
 }
@@ -657,7 +657,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Monat/Jahr laden oder heute
   const now = new Date();
-  const monateKurz = ["Jan","Feb","März","Apr","Mai","Juni","Juli","Aug","Sep","Okt","Nov","Dez"];
+  const monateKurz = ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
   const savedMonat = localStorage.getItem("stundenapp_monat");
   const savedJahr = localStorage.getItem("stundenapp_jahr");
 
@@ -735,6 +735,7 @@ window.eintragLoeschen = eintragLoeschen;
 
 
      
+
 
 
 
