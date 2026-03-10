@@ -657,7 +657,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Monat/Jahr laden oder heute
   const now = new Date();
-  const monateKurz = ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+  const monateKurz = ["Jan","Feb","März","Apr","Mai","Juni","Juli","Aug","Sep","Okt","Nov","Dez"];
   const savedMonat = localStorage.getItem("stundenapp_monat");
   const savedJahr = localStorage.getItem("stundenapp_jahr");
 
@@ -735,6 +735,7 @@ window.eintragLoeschen = eintragLoeschen;
 
 
      
+
 
 
 
