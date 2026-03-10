@@ -64,8 +64,8 @@ function jahr4stellig(jahrInput) {
 
 function monatLangName(monatKurz) {
   const map = {
-    Jan: "Januar", Feb: "Februar", Mär: "März", Apr: "April", Mai: "Mai", Jun: "Juni",
-    Jul: "Juli", Aug: "August", Sep: "September", Okt: "Oktober", Nov: "November", Dez: "Dezember"
+    Jan: "Januar", Feb: "Februar", März: "März", Apr: "April", Mai: "Mai", Juni: "Juni",
+    Juli: "Juli", Aug: "August", Sep: "September", Okt: "Oktober", Nov: "November", Dez: "Dezember"
   };
   return map[monatKurz] || monatKurz;
 }
@@ -735,6 +735,7 @@ window.eintragLoeschen = eintragLoeschen;
 
 
      
+
 
 
 
