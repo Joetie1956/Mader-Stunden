@@ -599,7 +599,7 @@ function csvExport() {
     () => {
       const subject = `Stundenliste ${monatJahrLang(monat, jahr)} (${empId})`;
       const body =
-        `Hallo Birte,\n\nanbei die CSV-Datei:\n${fileName}\n\nGruß\n${vorname} ${nachname}`;
+        `Hallo Birte,\n\nanbei die CSV-Datei:\n${fileName}\n\nLG Gruß\n${vorname} ${nachname}`;
       const mailto =
         `mailto:${DISPO_EMAIL}` +
         `?subject=${encodeURIComponent(subject)}` +
@@ -735,6 +735,7 @@ window.eintragLoeschen = eintragLoeschen;
 
 
      
+
 
 
 
